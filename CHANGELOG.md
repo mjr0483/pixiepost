@@ -17,3 +17,4 @@
 - [2026-03-26] [Codex] [infra] Added production Docker Compose and .env example for Coolify deployment
 ## 2026-03-27
 - [2026-03-27] [Codex] [infra] Backed up docker-compose.yml and updated production compose credentials and Temporal networking
+- [2026-03-27] [Codex] [infra] Removed duplicate docker-compose.yaml and kept docker-compose.yml as the production compose file
