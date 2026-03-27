@@ -144,7 +144,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=coolify
       - traefik.http.routers.pixiepost.rule=Host(`pixiepost.pixiewire.com`)
-      - traefik.http.routers.pixiepost.entrypoints=websecure
+      - traefik.http.routers.pixiepost.entrypoints=https
       - traefik.http.routers.pixiepost.tls=true
       - traefik.http.services.pixiepost.loadbalancer.server.port=5000
 
