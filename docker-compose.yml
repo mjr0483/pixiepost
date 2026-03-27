@@ -247,7 +247,7 @@ services:
     expose:
       - "7233"
     volumes:
-      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+      - /data/coolify/applications/w13p3iqa2bpukpcjcm1a8mow/dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
       kompose.volume.type: configMap
 
