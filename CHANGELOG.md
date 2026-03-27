@@ -14,3 +14,4 @@
 - [2026-03-26] [Joe] [infra] Deployed Coolify on Hetzner CPX31, Ashburn VA
 - [2026-03-26] [Joe] [infra] pixiepost.pixiewire.com live with SSL
 - [2026-03-26] [Codex] [docs] Initial README, CONTRIBUTING, and CHANGELOG setup
+- [2026-03-26] [Codex] [infra] Added production Docker Compose and .env example for Coolify deployment
