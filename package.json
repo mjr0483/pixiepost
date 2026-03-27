@@ -30,7 +30,7 @@
     "start:prod:orchestrator": "pnpm --filter ./apps/orchestrator run start",
     "start:prod:backend": "pnpm --filter ./apps/backend run start",
     "start:prod:frontend": "pnpm --filter ./apps/frontend run start",
-    "dev:docker": "docker compose -f ./docker-compose.dev.yaml up -d",
+    "dev:docker": "docker compose -f ./docker-compose.dev.yml up -d",
     "commands:build:development": "pnpm --filter ./apps/commands run build",
     "prisma-generate": "pnpm dlx prisma@6.5.0 generate --schema ./libraries/nestjs-libraries/src/database/prisma/schema.prisma",
     "prisma-db-push": "pnpm dlx prisma@6.5.0 db push --accept-data-loss --schema ./libraries/nestjs-libraries/src/database/prisma/schema.prisma",

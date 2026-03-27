@@ -18,3 +18,4 @@
 - [2026-03-26] [Codex] [docs] Added branch safety rules to Windsurf and Claude context files
 - [2026-03-26] [Codex] [infra] Removed duplicate docker-compose.yaml so docker-compose.yml is the only production compose file
 - [2026-03-26] [Codex] [infra] Added docker-compose.dev.yml for dev.pixiepost.pixiewire.com routing
+- [2026-03-26] [Codex] [infra] Removed duplicate docker-compose.dev.yaml and pointed dev:docker at docker-compose.dev.yml
