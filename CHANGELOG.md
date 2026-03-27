@@ -15,3 +15,4 @@
 - [2026-03-26] [Joe] [infra] pixiepost.pixiewire.com live with SSL
 - [2026-03-26] [Codex] [docs] Initial README, CONTRIBUTING, and CHANGELOG setup
 - [2026-03-26] [Codex] [infra] Added production Docker Compose and .env example for Coolify deployment
+- [2026-03-26] [Codex] [docs] Added branch safety rules to Windsurf and Claude context files

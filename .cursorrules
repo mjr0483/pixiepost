@@ -9,6 +9,7 @@
 - Never modify files in upstream Postiz core without explicit instruction
 - All new PixiePost features go in /apps/pixiepost/
 - Always prefix commits with [Codex] or [Claude] depending on the tool
+- Always run `git branch` before starting any task. Never commit to `main` without explicit instruction from Joe. All development work goes to the `dev` branch first. Main is production only and merges happen deliberately.
 - TypeScript strict - no any types without a comment explaining why
 - Always update CHANGELOG.md with a log entry for every task completed
 - When CHANGELOG.md exceeds 500 lines, rotate it to /docs/changelog-archive/YYYY-MM.md
