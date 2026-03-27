@@ -8,18 +8,19 @@ services:
     restart: always
     environment:
       # Public application URLs
-      MAIN_URL: "https://pixiepost.pixiewire.com"
-      FRONTEND_URL: "https://pixiepost.pixiewire.com"
-      NEXT_PUBLIC_BACKEND_URL: "https://pixiepost.pixiewire.com/api"
-      BACKEND_INTERNAL_URL: "http://postiz:5000"
+      MAIN_URL: "${MAIN_URL:-https://pixiepost.pixiewire.com}"
+      FRONTEND_URL: "${FRONTEND_URL:-https://pixiepost.pixiewire.com}"
+      NEXT_PUBLIC_BACKEND_URL: "${NEXT_PUBLIC_BACKEND_URL:-https://pixiepost.pixiewire.com/api}"
+      BACKEND_INTERNAL_URL: "${BACKEND_INTERNAL_URL:-http://localhost:3000}"
 
       # Core services
-      JWT_SECRET: "de8b2332617f10c93f573a4d87decca107cbc83f48f920c4cdeda0d54418f3fb6ad4c48ebeb743c1cdae56f58e4afb0d"
-      DATABASE_URL: "postgresql://postiz-user:L1sxyn5cKlp1O6JSY4BkyWaobDbaockJ@postiz-postgres:5432/postiz-db-local"
+      # REPLACE THIS with a long random secret before deploying.
+      JWT_SECRET: "${JWT_SECRET:-5QtFIXKje5QRgYZM/hv5tUS7yAVS7i7s7eY0ANNj/JgSL5FaAjqLyPyLWU4supTN}"
+      DATABASE_URL: "${DATABASE_URL:-postgresql://postiz-user:postiz-change-me@postiz-postgres:5432/postiz-db-local}"
       REDIS_URL: "${REDIS_URL:-redis://postiz-redis:6379}"
       TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:-temporal:7233}"
       IS_GENERAL: "${IS_GENERAL:-true}"
-      DISABLE_REGISTRATION: "false"
+      DISABLE_REGISTRATION: "${DISABLE_REGISTRATION:-true}"
       RUN_CRON: "${RUN_CRON:-true}"
 
       # Storage
@@ -42,8 +43,8 @@ services:
       CLOUDFLARE_REGION: "${CLOUDFLARE_REGION:-auto}"
 
       # Social media API credentials - add the values in .env before enabling each integration.
-      X_API_KEY: "44q24FDJke9cRF7euvmBf6Kfa"
-      X_API_SECRET: "j9H1ehKhjGmuCv7Miuel0ytOY3qXCcyLR5G8iVQOKD4dhqcQzt"
+      X_API_KEY: "${X_API_KEY:-}"
+      X_API_SECRET: "${X_API_SECRET:-}"
       LINKEDIN_CLIENT_ID: "${LINKEDIN_CLIENT_ID:-}"
       LINKEDIN_CLIENT_SECRET: "${LINKEDIN_CLIENT_SECRET:-}"
       REDDIT_CLIENT_ID: "${REDDIT_CLIENT_ID:-}"
@@ -58,8 +59,8 @@ services:
       LISTMONK_LIST_ID: "${LISTMONK_LIST_ID:-}"
       THREADS_APP_ID: "${THREADS_APP_ID:-}"
       THREADS_APP_SECRET: "${THREADS_APP_SECRET:-}"
-      FACEBOOK_APP_ID: "965496275968047"
-      FACEBOOK_APP_SECRET: "f265998180ac4be5d82ec308acccf132"
+      FACEBOOK_APP_ID: "${FACEBOOK_APP_ID:-}"
+      FACEBOOK_APP_SECRET: "${FACEBOOK_APP_SECRET:-}"
       YOUTUBE_CLIENT_ID: "${YOUTUBE_CLIENT_ID:-}"
       YOUTUBE_CLIENT_SECRET: "${YOUTUBE_CLIENT_SECRET:-}"
       TIKTOK_CLIENT_ID: "${TIKTOK_CLIENT_ID:-}"
@@ -152,7 +153,7 @@ services:
     image: postgres:17-alpine
     restart: always
     environment:
-      POSTGRES_PASSWORD: "${POSTIZ_POSTGRES_PASSWORD:-L1sxyn5cKlp1O6JSY4BkyWaobDbaockJ}"
+      POSTGRES_PASSWORD: "${POSTIZ_POSTGRES_PASSWORD:-postiz-change-me}"
       POSTGRES_USER: "${POSTIZ_POSTGRES_USER:-postiz-user}"
       POSTGRES_DB: "${POSTIZ_POSTGRES_DB:-postiz-db-local}"
     volumes:
@@ -191,13 +192,13 @@ services:
     image: elasticsearch:7.17.27
     restart: always
     environment:
-      cluster.routing.allocation.disk.threshold_enabled: "true"
-      cluster.routing.allocation.disk.watermark.low: "512mb"
-      cluster.routing.allocation.disk.watermark.high: "256mb"
-      cluster.routing.allocation.disk.watermark.flood_stage: "128mb"
-      discovery.type: "single-node"
-      ES_JAVA_OPTS: "-Xms256m -Xmx256m"
-      xpack.security.enabled: "false"
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
     networks:
       - temporal-network
     expose:
@@ -209,7 +210,7 @@ services:
     image: postgres:16
     restart: always
     environment:
-      POSTGRES_PASSWORD: "${TEMPORAL_POSTGRES_PASSWORD:-XVq3pwmsplezrmGtSGU7GZiQGGmOLtQv}"
+      POSTGRES_PASSWORD: "${TEMPORAL_POSTGRES_PASSWORD:-temporal-change-me}"
       POSTGRES_USER: "${TEMPORAL_POSTGRES_USER:-temporal}"
       POSTGRES_DB: "${TEMPORAL_POSTGRES_DB:-temporal}"
     networks:
@@ -234,7 +235,7 @@ services:
       - DB=${TEMPORAL_DB:-postgres12}
       - DB_PORT=${TEMPORAL_DB_PORT:-5432}
       - POSTGRES_USER=${TEMPORAL_POSTGRES_USER:-temporal}
-      - POSTGRES_PWD=${TEMPORAL_POSTGRES_PASSWORD:-XVq3pwmsplezrmGtSGU7GZiQGGmOLtQv}
+      - POSTGRES_PWD=${TEMPORAL_POSTGRES_PASSWORD:-temporal-change-me}
       - POSTGRES_SEEDS=${TEMPORAL_POSTGRES_SEEDS:-temporal-postgresql}
       - DYNAMIC_CONFIG_FILE_PATH=${TEMPORAL_DYNAMIC_CONFIG_FILE_PATH:-config/dynamicconfig/development-sql.yaml}
       - ENABLE_ES=${ENABLE_ES:-true}
@@ -242,7 +243,6 @@ services:
       - ES_VERSION=${ES_VERSION:-v7}
       - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
     networks:
-      - postiz-network
       - temporal-network
     expose:
       - "7233"
@@ -258,7 +258,6 @@ services:
       - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS:-temporal:7233}
       - TEMPORAL_CLI_ADDRESS=${TEMPORAL_ADDRESS:-temporal:7233}
     networks:
-      - postiz-network
       - temporal-network
     stdin_open: true
     depends_on:
@@ -272,7 +271,6 @@ services:
       - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS:-temporal:7233}
       - TEMPORAL_CORS_ORIGINS=${TEMPORAL_UI_CORS_ORIGINS:-https://pixiepost.pixiewire.com}
     networks:
-      - postiz-network
       - temporal-network
     expose:
       - "8080"
