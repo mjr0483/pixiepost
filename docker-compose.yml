@@ -140,6 +140,8 @@ services:
         condition: service_healthy
       postiz-redis:
         condition: service_healthy
+      temporal:
+        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.docker.network=coolify
@@ -228,8 +230,10 @@ services:
     image: temporalio/auto-setup:1.28.1
     restart: always
     depends_on:
-      - temporal-postgresql
-      - temporal-elasticsearch
+      temporal-postgresql:
+        condition: service_healthy
+      temporal-elasticsearch:
+        condition: service_started
     environment:
       - DB=${TEMPORAL_DB:-postgres12}
       - DB_PORT=${TEMPORAL_DB_PORT:-5432}
@@ -246,6 +250,12 @@ services:
       - temporal-network
     expose:
       - "7233"
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     volumes:
       - /data/coolify/applications/w13p3iqa2bpukpcjcm1a8mow/dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
