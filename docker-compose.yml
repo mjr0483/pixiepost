@@ -42,8 +42,8 @@ services:
       CLOUDFLARE_REGION: "${CLOUDFLARE_REGION:-auto}"
 
       # Social media API credentials - add the values in .env before enabling each integration.
-      X_API_KEY: "44q24FDJke9cRF7euvmBf6Kfa"
-      X_API_SECRET: "j9H1ehKhjGmuCv7Miuel0ytOY3qXCcyLR5G8iVQOKD4dhqcQzt"
+      X_API_KEY: "u1U7tlJIQqGzWQ3AAI6CDy1vg"
+      X_API_SECRET: "EzjCr9Y05fLeOqilzDgFsrrpHuqZ2Ln8jBdF16ghbWZyJXd419"
       LINKEDIN_CLIENT_ID: "${LINKEDIN_CLIENT_ID:-}"
       LINKEDIN_CLIENT_SECRET: "${LINKEDIN_CLIENT_SECRET:-}"
       REDDIT_CLIENT_ID: "${REDDIT_CLIENT_ID:-}"
