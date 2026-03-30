@@ -616,11 +616,12 @@ export const MediaBox: FC<{
         setActiveTab('library');
         return;
       }
-      setSelected((prev) => [...prev, ...imported]);
-      mutate();
-      setActiveTab('library');
+      // Add directly to post and close - skip My Media step
+      // @ts-ignore
+      setMedia([...selected, ...imported]);
+      modals.closeCurrent();
     },
-    [standalone, mutate]
+    [standalone, mutate, selected]
   );
 
   return (
