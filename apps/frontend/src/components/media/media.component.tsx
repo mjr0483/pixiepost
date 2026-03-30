@@ -50,6 +50,10 @@ import {
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import {
+  useServerFolders,
+  useServerFiles,
+} from '@gitroom/frontend/components/media/use-server-photos';
 const Polonto = dynamic(
   () => import('@gitroom/frontend/components/launches/polonto')
 );
@@ -195,6 +199,212 @@ export const showMediaBox = (
 ) => {
   showModalEmitter.emit('show-modal', callback);
 };
+const ServerPhotosView: FC<{
+  onImport: (imported: { id: string; path: string }[]) => void;
+}> = ({ onImport }) => {
+  const fetch = useFetch();
+  const t = useT();
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [selectedSubfolder, setSelectedSubfolder] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState<
+    { name: string; path: string }[]
+  >([]);
+  const [importing, setImporting] = useState(false);
+
+  const { data: foldersData, isLoading: foldersLoading } = useServerFolders();
+  const { data: filesData, isLoading: filesLoading } = useServerFiles(
+    selectedFolder,
+    selectedSubfolder,
+    page
+  );
+
+  const toggleFile = useCallback(
+    (file: { name: string; path: string }) => {
+      const exists = selectedFiles.find((f) => f.path === file.path);
+      if (exists) {
+        setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
+      } else {
+        setSelectedFiles([...selectedFiles, file]);
+      }
+    },
+    [selectedFiles]
+  );
+
+  const handleImport = useCallback(async () => {
+    if (!selectedFiles.length) return;
+    setImporting(true);
+    try {
+      const res = await fetch('/media/server-import', {
+        method: 'POST',
+        body: JSON.stringify({
+          files: selectedFiles.map((f) => ({
+            path: f.path,
+            originalName: f.name,
+          })),
+        }),
+      });
+      const imported = await res.json();
+      onImport(imported);
+    } finally {
+      setImporting(false);
+    }
+  }, [selectedFiles, onImport]);
+
+  const subfolderOptions = ['X', 'IG 3x4', 'IG 4x5', 'Originals'];
+
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="flex gap-[8px] mb-[12px] flex-wrap">
+        <select
+          className="h-[36px] px-[12px] rounded-[6px] bg-newBgColorInner border border-newBorder text-textColor text-[13px]"
+          value={selectedFolder || ''}
+          onChange={(e) => {
+            setSelectedFolder(e.target.value || null);
+            setSelectedSubfolder(null);
+            setPage(0);
+            setSelectedFiles([]);
+          }}
+        >
+          <option value="">{t('select_shoot_folder', 'Select shoot folder...')}</option>
+          {foldersData?.folders?.map((f) => (
+            <option key={f.name} value={f.name}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        {selectedFolder && (
+          <div className="flex gap-[4px]">
+            {subfolderOptions
+              .filter((sf) =>
+                foldersData?.folders
+                  ?.find((f) => f.name === selectedFolder)
+                  ?.subfolders?.includes(sf)
+              )
+              .map((sf) => (
+                <button
+                  key={sf}
+                  onClick={() => {
+                    setSelectedSubfolder(sf);
+                    setPage(0);
+                    setSelectedFiles([]);
+                  }}
+                  className={clsx(
+                    'h-[36px] px-[12px] rounded-[6px] text-[13px] font-[500] cursor-pointer',
+                    selectedSubfolder === sf
+                      ? 'bg-[#612BD3] text-white'
+                      : 'bg-newBgColorInner border border-newBorder text-textColor hover:bg-forth'
+                  )}
+                >
+                  {sf}
+                </button>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 relative">
+        <div className="absolute -left-[3px] -top-[3px] withp3 h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner">
+          {!selectedFolder && (
+            <div className="flex justify-center items-center h-full flex-col gap-[12px] text-newTextColor/[0.6]">
+              <div className="text-[16px]">
+                {t('select_a_shoot_folder', 'Select a shoot folder to browse server photos')}
+              </div>
+            </div>
+          )}
+          {selectedFolder && !selectedSubfolder && (
+            <div className="flex justify-center items-center h-full flex-col gap-[12px] text-newTextColor/[0.6]">
+              <div className="text-[16px]">
+                {t('select_a_size', 'Select a size: X, IG 3x4, or IG 4x5')}
+              </div>
+            </div>
+          )}
+          {filesLoading && (
+            <>
+              {[...new Array(16)].map((_, i) => (
+                <div
+                  className="px-[3px] py-[3px] float-left rounded-[6px] w8-max aspect-square"
+                  key={i}
+                >
+                  <div className="w-full h-full bg-newSep rounded-[6px] animate-pulse" />
+                </div>
+              ))}
+            </>
+          )}
+          {filesData?.files?.map((file) => (
+            <div
+              className="group px-[3px] py-[3px] float-left rounded-[6px] cursor-pointer w8-max aspect-square"
+              key={file.path}
+            >
+              <div
+                className={clsx(
+                  'w-full h-full rounded-[6px] border-[4px] relative',
+                  selectedFiles.find((f) => f.path === file.path)
+                    ? 'border-[#612BD3]'
+                    : 'border-transparent'
+                )}
+                onClick={() => toggleFile(file)}
+              >
+                {selectedFiles.find((f) => f.path === file.path) && (
+                  <div className="text-white flex z-[101] justify-center items-center text-[14px] font-[500] w-[24px] h-[24px] rounded-full bg-[#612BD3] absolute -bottom-[10px] -end-[10px]">
+                    {selectedFiles.findIndex((f) => f.path === file.path) + 1}
+                  </div>
+                )}
+                <div className="absolute bottom-[10px] end-[10px] z-[100] text-[11px] text-white bg-black/50 px-[4px] rounded">
+                  {file.name}
+                </div>
+                <div className="w-full h-full rounded-[6px] overflow-hidden">
+                  <img
+                    width="100%"
+                    height="100%"
+                    className="w-full h-full object-cover"
+                    src={file.path}
+                    alt={file.name}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+          {selectedFolder &&
+            selectedSubfolder &&
+            !filesLoading &&
+            filesData?.files?.length === 0 && (
+              <div className="flex justify-center items-center h-full text-newTextColor/[0.6]">
+                {t('no_photos_in_folder', 'No photos in this folder')}
+              </div>
+            )}
+        </div>
+      </div>
+
+      {(filesData?.pages || 0) > 1 && (
+        <Pagination
+          current={page}
+          totalPages={filesData?.pages || 0}
+          setPage={setPage}
+        />
+      )}
+
+      <div className="flex justify-between items-center mt-[12px]">
+        <div className="text-[13px] text-newTextColor/[0.6]">
+          {selectedFiles.length > 0 &&
+            `${selectedFiles.length} ${t('selected', 'selected')}`}
+        </div>
+        <button
+          onClick={handleImport}
+          disabled={selectedFiles.length === 0 || importing}
+          className="cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed h-[44px] px-[20px] items-center justify-center bg-[#612BD3] flex rounded-[10px] gap-[8px]"
+        >
+          {importing ? (
+            <div className="animate-spin h-[16px] w-[16px] border-2 border-white border-t-transparent rounded-full" />
+          ) : null}
+          {t('import_to_media_library', 'Import to Media Library')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const CHUNK_SIZE = 1024 * 1024;
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1 GB
 export const MediaBox: FC<{
@@ -203,6 +413,7 @@ export const MediaBox: FC<{
   type?: 'image' | 'video';
   closeModal: () => void;
 }> = ({ type, standalone, setMedia }) => {
+  const [activeTab, setActiveTab] = useState<'library' | 'server'>('library');
   const [page, setPage] = useState(0);
   const fetch = useFetch();
   const modals = useModals();
@@ -398,9 +609,52 @@ export const MediaBox: FC<{
     );
   }, [t, loading]);
 
+  const handleServerImport = useCallback(
+    (imported: { id: string; path: string }[]) => {
+      if (standalone) {
+        mutate();
+        setActiveTab('library');
+        return;
+      }
+      setSelected((prev) => [...prev, ...imported]);
+      mutate();
+      setActiveTab('library');
+    },
+    [standalone, mutate]
+  );
+
   return (
     <DropFiles disabled={loading} className="flex flex-col flex-1" onDrop={dragAndDrop}>
       <div className="flex flex-col flex-1">
+        <div className="flex gap-[4px] mb-[12px]">
+          <button
+            onClick={() => setActiveTab('library')}
+            className={clsx(
+              'h-[36px] px-[16px] rounded-[6px] text-[13px] font-[600] cursor-pointer',
+              activeTab === 'library'
+                ? 'bg-[#612BD3] text-white'
+                : 'bg-newBgColorInner border border-newBorder text-textColor hover:bg-forth'
+            )}
+          >
+            {t('my_media', 'My Media')}
+          </button>
+          <button
+            onClick={() => setActiveTab('server')}
+            className={clsx(
+              'h-[36px] px-[16px] rounded-[6px] text-[13px] font-[600] cursor-pointer',
+              activeTab === 'server'
+                ? 'bg-[#612BD3] text-white'
+                : 'bg-newBgColorInner border border-newBorder text-textColor hover:bg-forth'
+            )}
+          >
+            {t('server_photos', 'Server Photos')}
+          </button>
+        </div>
+
+        {activeTab === 'server' ? (
+          <ServerPhotosView onImport={handleServerImport} />
+        ) : (
+        <>
         <div
           className={clsx(
             'flex',
@@ -597,6 +851,8 @@ export const MediaBox: FC<{
               </button>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
     </DropFiles>

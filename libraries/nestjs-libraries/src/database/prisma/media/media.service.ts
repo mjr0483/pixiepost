@@ -8,6 +8,14 @@ import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import {
+  readdirSync,
+  statSync,
+  existsSync,
+  copyFileSync,
+  mkdirSync,
+} from 'fs';
+import { join, extname, basename } from 'path';
+import {
   AuthorizationActions,
   Sections,
   SubscriptionException,
@@ -120,6 +128,127 @@ export class MediaService {
         return this.saveFile(org.id, file.split('/').pop(), file);
       }
     );
+  }
+
+  private get serverPhotosDir(): string {
+    return process.env.SERVER_PHOTOS_DIR || '/server-photos';
+  }
+
+  private static readonly IMAGE_EXTENSIONS = new Set([
+    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic',
+  ]);
+
+  private isImageFile(filename: string): boolean {
+    return MediaService.IMAGE_EXTENSIONS.has(extname(filename).toLowerCase());
+  }
+
+  getServerFolders() {
+    const baseDir = join(this.serverPhotosDir, 'Social Media to be published');
+    if (!existsSync(baseDir)) {
+      return { folders: [] };
+    }
+
+    const entries = readdirSync(baseDir, { withFileTypes: true });
+    const folders = entries
+      .filter((e) => e.isDirectory() && e.name !== '_gsdata_')
+      .map((e) => {
+        const folderPath = join(baseDir, e.name);
+        const subEntries = readdirSync(folderPath, { withFileTypes: true });
+        const subfolders = subEntries
+          .filter((s) => s.isDirectory() && s.name !== '_gsdata_')
+          .map((s) => s.name);
+        return { name: e.name, subfolders };
+      });
+
+    return { folders };
+  }
+
+  getServerFiles(folder: string, subfolder: string, page: number) {
+    // Sanitize: prevent path traversal
+    const safeFolderName = basename(folder);
+    const safeSubfolder = basename(subfolder);
+    const dirPath = join(
+      this.serverPhotosDir,
+      'Social Media to be published',
+      safeFolderName,
+      safeSubfolder
+    );
+
+    if (!existsSync(dirPath)) {
+      return { files: [], pages: 0, total: 0 };
+    }
+
+    const allFiles = readdirSync(dirPath)
+      .filter((f) => this.isImageFile(f))
+      .sort();
+
+    const pageNum = Math.max(0, (page || 1) - 1);
+    const perPage = 18;
+    const total = allFiles.length;
+    const pages = Math.ceil(total / perPage);
+    const files = allFiles.slice(pageNum * perPage, (pageNum + 1) * perPage).map((f) => {
+      const relPath = `/server-photos/Social Media to be published/${encodeURIComponent(safeFolderName)}/${encodeURIComponent(safeSubfolder)}/${encodeURIComponent(f)}`;
+      return {
+        name: f,
+        path: process.env.FRONTEND_URL + relPath,
+        folder: safeFolderName,
+        subfolder: safeSubfolder,
+      };
+    });
+
+    return { files, pages, total };
+  }
+
+  async importServerFiles(
+    orgId: string,
+    files: { path: string; originalName: string }[]
+  ) {
+    const uploadDir = process.env.UPLOAD_DIRECTORY || '/uploads';
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    const innerPath = `/${year}/${month}/${day}`;
+    const destDir = `${uploadDir}${innerPath}`;
+    mkdirSync(destDir, { recursive: true });
+
+    const results = [];
+    for (const file of files) {
+      // Extract the local filesystem path from the URL
+      const url = new URL(file.path);
+      const decodedPath = decodeURIComponent(url.pathname);
+
+      // Must start with /server-photos/ to prevent arbitrary file reads
+      if (!decodedPath.startsWith('/server-photos/')) {
+        continue;
+      }
+
+      const sourcePath = decodedPath; // nginx alias maps this to /server-photos/ on disk
+      if (!existsSync(sourcePath)) {
+        continue;
+      }
+
+      const randomName = Array(32)
+        .fill(null)
+        .map(() => Math.round(Math.random() * 16).toString(16))
+        .join('');
+      const ext = extname(file.originalName || sourcePath);
+      const destFile = `${destDir}/${randomName}${ext}`;
+      const publicPath = `${innerPath}/${randomName}${ext}`;
+
+      copyFileSync(sourcePath, destFile);
+
+      const saved = await this._mediaRepository.saveFile(
+        orgId,
+        `${randomName}${ext}`,
+        process.env.FRONTEND_URL + '/uploads' + publicPath,
+        file.originalName
+      );
+      results.push(saved);
+    }
+
+    return results;
   }
 
   async videoFunction(identifier: string, functionName: string, body: any) {

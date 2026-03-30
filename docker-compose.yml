@@ -27,6 +27,7 @@ services:
       UPLOAD_DIRECTORY: "${UPLOAD_DIRECTORY:-/uploads}"
       NEXT_PUBLIC_UPLOAD_DIRECTORY: "${NEXT_PUBLIC_UPLOAD_DIRECTORY:-/uploads}"
       NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY: "${NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY:-}"
+      SERVER_PHOTOS_DIR: "${SERVER_PHOTOS_DIR:-/server-photos}"
 
       # Optional email settings
       RESEND_API_KEY: "${RESEND_API_KEY:-}"
@@ -129,6 +130,7 @@ services:
     volumes:
       - postiz-config:/config
       - postiz-uploads:/uploads
+      - /opt/pw-photos:/server-photos:ro
     expose:
       - "5000"
     networks:

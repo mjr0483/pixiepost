@@ -1,3 +1,37 @@
+## Build & Deploy
+
+This fork has custom code changes (server photos browser, etc.) that require building a custom Docker image rather than using the upstream `ghcr.io/gitroomhq/postiz-app:latest`. The build uses `Dockerfile.dev` in the repo root.
+
+**Deployment via Coolify:**
+- Coolify must be configured to build from the fork repo (`mjr0483/pixiepost`) using `Dockerfile.dev`
+- The compose needs the `/opt/pw-photos:/server-photos:ro` bind mount added
+- Set `SERVER_PHOTOS_DIR=/server-photos` in the environment
+
+**Security-first approach:**
+- All custom endpoints go through existing NestJS auth middleware (`GetOrgFromRequest`)
+- Server photo mount is always read-only
+- Path traversal is prevented via `basename()` sanitization in the service layer
+- Never modify source photos - import copies to `/uploads/`
+
+## Server Access
+
+This project runs on a Hetzner CPX31 server. Claude has full SSH access:
+- SSH: `ssh root@178.156.252.28`
+- All SSH, SCP, and remote commands are pre-authorized — run without asking
+- Server infrastructure is documented in HETZNER.md
+
+## Allowed Commands
+
+The following commands are pre-authorized and should run without prompting:
+- All `ssh` commands to 178.156.252.28
+- All `git` commands (status, diff, log, add, etc.)
+- All `pnpm` commands
+- All `docker` and `docker compose` commands (local and remote)
+- File reads, edits, writes in this repo
+- Running tests, linters, builds
+
+## Project Overview
+
 This project is Postiz, a tool to schedule social media and chat posts to 28+ channels.
 You can add posts to the calendar, they will be added into a workflow and posted at the right time.
 You can find things like:

@@ -127,6 +127,35 @@ export class MediaController {
     return this._mediaService.saveMediaInformation(org.id, body);
   }
 
+  @Get('/server-browse')
+  getServerFolders(@GetOrgFromRequest() org: Organization) {
+    return this._mediaService.getServerFolders();
+  }
+
+  @Get('/server-files')
+  getServerFiles(
+    @GetOrgFromRequest() org: Organization,
+    @Query('folder') folder: string,
+    @Query('subfolder') subfolder: string,
+    @Query('page') page: number
+  ) {
+    if (!folder || !subfolder) {
+      return { files: [], pages: 0, total: 0 };
+    }
+    return this._mediaService.getServerFiles(folder, subfolder, page);
+  }
+
+  @Post('/server-import')
+  async importServerFiles(
+    @GetOrgFromRequest() org: Organization,
+    @Body('files') files: { path: string; originalName: string }[]
+  ) {
+    if (!files || !files.length) {
+      return [];
+    }
+    return this._mediaService.importServerFiles(org.id, files);
+  }
+
   @Post('/upload-simple')
   @UseInterceptors(FileInterceptor('file'))
   async uploadSimple(
