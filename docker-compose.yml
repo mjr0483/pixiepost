@@ -13,7 +13,7 @@ services:
       MAIN_URL: "https://pixiepost.pixiewire.com"
       FRONTEND_URL: "https://pixiepost.pixiewire.com"
       NEXT_PUBLIC_BACKEND_URL: "https://pixiepost.pixiewire.com/api"
-      BACKEND_INTERNAL_URL: "http://postiz:5000"
+      BACKEND_INTERNAL_URL: "http://localhost:3000"
 
       # Core services
       JWT_SECRET: "de8b2332617f10c93f573a4d87decca107cbc83f48f920c4cdeda0d54418f3fb6ad4c48ebeb743c1cdae56f58e4afb0d"
