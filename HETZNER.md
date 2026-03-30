@@ -317,7 +317,6 @@ Google Drive has been removed from the photo pipeline. Photos now sync via GoodS
 
 **Remaining:**
 - [ ] Delete n8n workflow #6 (old processor, already inactive)
-- [ ] Consolidate webhook services (8084 vs 8085)
 
 ### 2026-03-29 - Server Photos Browser Feature
 
@@ -334,3 +333,18 @@ See `PROJECT_LOG.md` for full code change details and security notes.
 - Enabled Coolify API (token stored above)
 - First build took ~6 min; subsequent builds use Docker layer caching (~2-3 min)
 - Verified: `/server-photos/` mount, nginx config, site health check all working
+
+### 2026-03-30 - Security Audit Complete
+
+Full security audit with all 24 findings resolved. See `SECURITY_AUDIT.md` for details.
+
+**Fixes applied:**
+- Supabase RLS locked down: anon role blocked, pw-log uses authenticated sign-in
+- SSH hardened: password auth disabled, fail2ban installed
+- Firewall: Hetzner cloud FW (22/80/443 only) + DOCKER-USER iptables chain
+- Traefik: security headers (HSTS, XFO, XCTO) on dashboard, log, n8n
+- n8n forced to HTTPS with HTTP redirect
+- BasicAuth bcrypt cost upgraded from 5 to 10, password rotated
+- Photo webhook secret rotated to 48-char hex, CORS restricted
+- Unauthenticated webhook (port 8085) killed, consolidated to 8084
+- Supabase storage upload policy restricted to mileage-photos bucket

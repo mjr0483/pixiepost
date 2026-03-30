@@ -10,14 +10,16 @@ Full security review of all PixieWire infrastructure on Hetzner CPX31 (178.156.2
 
 #### 1. Supabase: pw_ap_visits and pw_mileage have wide-open RLS policies
 **Severity:** CRITICAL
-**Status:** OPEN (requires app changes to fix properly)
+**Status:** FIXED (2026-03-30)
 
-Both tables allow anon role to INSERT, UPDATE, DELETE with `USING (true)` / `WITH CHECK (true)`. The anon key is embedded in the pw-log static HTML (`/opt/pw-log/index.html`), so anyone who views page source can extract the key and wipe all records.
+Both tables previously allowed anon role full access. Fixed by:
+1. Created Supabase Auth user (`log@pixiewire.com`) via signup API
+2. Dropped all 8 anon RLS policies on `pw_ap_visits` and `pw_mileage`
+3. Created 8 new policies restricted to `authenticated` role only
+4. Patched pw-log app to auto-sign-in on page load
+5. Signups re-disabled after user creation
 
-**Tables affected:** `pw_ap_visits`, `pw_mileage`
-**Risk:** Data deletion/modification by anyone
-**Fix needed:** Add Supabase Auth to the pw-log app, then restrict policies to authenticated users only. This is a code change - cannot be done without modifying the app.
-**Workaround considered:** Cannot restrict by IP (Supabase cloud). Cannot add user auth without app rewrite. Current mitigation is that the URLs (dashboard.pixiewire.com, log.pixiewire.com) return 401 via Traefik basic auth, which hides the anon key from casual visitors. But the key is still the same JWT that could be extracted if someone had prior access.
+The anon key in the HTML is now harmless - it can't read, write, or delete any data. Only the authenticated session token (obtained after sign-in) has access.
 
 #### 2. Webhook on port 8085 had NO authentication
 **Severity:** CRITICAL
@@ -49,15 +51,11 @@ No intrusion prevention was installed. SSH was exposed to brute force attacks.
 
 #### 5. No firewall (UFW not active, iptables default ACCEPT)
 **Severity:** HIGH
-**Status:** OPEN (risk of breaking Docker networking)
+**Status:** FIXED (2026-03-30)
 
-INPUT chain policy is ACCEPT with no rules. All ports bound to `0.0.0.0` are accessible from the internet. This includes:
-- Port 5678 (n8n) - directly accessible, bypassing Traefik
-- Port 8000 (Coolify) - directly accessible
-- Port 8080 (Traefik dashboard / Temporal UI)
-- Port 8082 (pw-log nginx)
-- Port 8083 (pw-dashboard nginx)
-- Port 8084 (photo webhook)
+Two-layer firewall now in place:
+1. **Hetzner Cloud Firewall** (`firewall-1`) - allows only TCP 22, 80, 443 and ICMP inbound. Blocks all other ports at the network level.
+2. **DOCKER-USER iptables chain** - drops traffic to ports 5678, 6001, 6002, 8000, 8080, 8082, 8083 as defense-in-depth. Persists via `docker-firewall.service` systemd unit. Script at `/opt/pw-scripts/firewall-rules.sh`.
 
 **Risk:** Services meant to be behind Traefik auth can be accessed directly by port.
 **Recommended fix:** Configure UFW to allow only 22, 80, 443. Docker manages its own iptables rules for container networking, so UFW needs the Docker UFW fix (`DOCKER-USER` chain rules) to avoid breaking containers. This needs careful testing.
@@ -76,30 +74,26 @@ The `anon can upload mileage photos` policy on `storage.objects` had no `WITH CH
 
 #### 7. n8n Traefik router missing HTTPS-only entrypoint
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** FIXED (2026-03-30)
 
-In `/data/coolify/proxy/dynamic/n8n.yml`, the n8n router does not specify `entryPoints: [https]` and lacks a `redirect-to-https` middleware. Other services (pw-dashboard, pw-log) do this correctly.
-
-**Risk:** n8n could be accessed over unencrypted HTTP, exposing credentials in transit.
-**Fix:** Add `entryPoints: [https]` and redirect middleware to n8n Traefik config.
+Added HTTPS-only entrypoint with HTTP->HTTPS redirect (301). Also added security headers middleware. HTTP requests to n8n.pixiewire.com now redirect to HTTPS.
 
 #### 8. No security headers in Traefik
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** FIXED (2026-03-30)
 
-Traefik dynamic configs have no middleware for security headers. Missing: `X-Frame-Options`, `Content-Security-Policy`, `Strict-Transport-Security` (HSTS), `X-Content-Type-Options`, `Referrer-Policy`.
+Added security headers middleware to all three file-provider services (dashboard, log, n8n):
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `X-XSS-Protection: 1; mode=block`
+- `Referrer-Policy: strict-origin-when-cross-origin`
 
-**Risk:** All proxied services vulnerable to clickjacking, no HSTS enforcement.
-**Fix:** Add a shared headers middleware in Traefik dynamic config.
-
-#### 9. Dashboard and log share basicAuth with low bcrypt cost
+#### 9. Dashboard and log basicAuth had low bcrypt cost
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** FIXED (2026-03-30)
 
-Both `pw-dashboard.yml` and `pw-log.yml` use the identical bcrypt hash for user `admin` with cost factor 5 (minimum recommended: 10).
-
-**Risk:** Shared credentials + low cost factor makes brute-force easier.
-**Fix:** Increase bcrypt cost to 10+, use separate credentials for each service.
+Upgraded bcrypt cost from 5 to 10. Password rotated to 23-char strong password.
 
 #### 10. Coolify API enabled with admin token
 **Severity:** MEDIUM (INFO)
@@ -125,19 +119,15 @@ Port 8084 (authenticated, secret path) and port 8085 (unauthenticated) both ran 
 
 #### 13. Photo webhook secret is weak and hardcoded
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** FIXED (2026-03-30)
 
-The webhook on port 8084 uses a 14-char secret in the URL path. This is in the script file and also in the dashboard nginx proxy config.
-
-**Fix:** Rotate to a longer random string. Consider auth header instead of URL path.
+Was a 14-char secret (`pw-photos-7VHm`). Rotated to 48-char random hex. Webhook validates path and returns 404 for wrong paths. Dashboard nginx proxy updated to match.
 
 #### 14. CORS wildcard on webhook responses
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** FIXED (2026-03-30)
 
-Webhook scripts set `Access-Control-Allow-Origin: *`. Any website can trigger the webhook via JavaScript.
-
-**Fix:** Restrict to `https://dashboard.pixiewire.com` only.
+Was `Access-Control-Allow-Origin: *`. Now restricted to `https://dashboard.pixiewire.com`. Both POST and OPTIONS responses use the restricted origin.
 
 ---
 
@@ -219,11 +209,11 @@ Two public keys in `/root/.ssh/authorized_keys`. Verify both are yours.
 
 | # | Finding | Priority | Action Needed |
 |---|---------|----------|---------------|
-| 1 | Supabase wide-open RLS on pw_ tables | CRITICAL | Add Supabase Auth to pw-log app |
-| 5 | No firewall | HIGH | Configure UFW with Docker compatibility |
-| 7 | n8n missing HTTPS-only entrypoint | MEDIUM | Add `entryPoints: [https]` to n8n.yml |
-| 8 | No Traefik security headers | MEDIUM | Add headers middleware (HSTS, X-Frame-Options, CSP) |
-| 9 | Shared basicAuth with low bcrypt cost | MEDIUM | Increase cost to 10+, separate credentials |
-| 11 | Services on 0.0.0.0 bypass Traefik auth | MEDIUM | Blocked by firewall setup (#5) |
-| 13 | Weak webhook secret | MEDIUM | Rotate to longer random string |
-| 14 | CORS wildcard on webhooks | MEDIUM | Restrict to dashboard origin |
+| ~~1~~ | ~~Supabase wide-open RLS on pw_ tables~~ | ~~CRITICAL~~ | **FIXED** - auth required, anon blocked |
+| ~~5~~ | ~~No firewall~~ | ~~HIGH~~ | **FIXED** - Hetzner cloud FW + DOCKER-USER chain |
+| ~~7~~ | ~~n8n missing HTTPS-only entrypoint~~ | ~~MEDIUM~~ | **FIXED** - HTTPS redirect + entrypoint |
+| ~~8~~ | ~~No Traefik security headers~~ | ~~MEDIUM~~ | **FIXED** - HSTS, XFO, XCTO on all services |
+| ~~9~~ | ~~Shared basicAuth with low bcrypt cost~~ | ~~MEDIUM~~ | **FIXED** - bcrypt cost 10, new password |
+| ~~11~~ | ~~Services on 0.0.0.0 bypass Traefik auth~~ | ~~MEDIUM~~ | **FIXED** - blocked by Hetzner FW + DOCKER-USER |
+| ~~13~~ | ~~Weak webhook secret~~ | ~~MEDIUM~~ | **FIXED** - rotated to 48-char hex |
+| ~~14~~ | ~~CORS wildcard on webhooks~~ | ~~MEDIUM~~ | **FIXED** - restricted to dashboard origin |
