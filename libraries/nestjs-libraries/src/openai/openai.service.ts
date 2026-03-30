@@ -30,10 +30,10 @@ async function claudeStructured<T>(
       {
         name: schemaName,
         description: `Respond with structured data matching the ${schemaName} schema`,
-        input_schema: zodToJsonSchema(schema),
+        input_schema: zodToJsonSchema(schema) as Anthropic.Tool.InputSchema,
       },
     ],
-    tool_choice: { type: 'tool', name: schemaName },
+    tool_choice: { type: 'tool' as const, name: schemaName },
   });
 
   const toolBlock = response.content.find(
