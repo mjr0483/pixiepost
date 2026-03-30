@@ -5,7 +5,8 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { ChatOpenAI, DallEAPIWrapper } from '@langchain/openai';
+import { ChatAnthropic } from '@langchain/anthropic';
+import { DallEAPIWrapper } from '@langchain/openai';
 import { TavilySearchResults } from '@langchain/community/tools/tavily_search';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
@@ -21,9 +22,9 @@ const tools = !process.env.TAVILY_API_KEY
   : [new TavilySearchResults({ maxResults: 3 })];
 const toolNode = new ToolNode(tools);
 
-const model = new ChatOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4.1',
+const model = new ChatAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
+  model: 'claude-sonnet-4-20250514',
   temperature: 0.7,
 });
 

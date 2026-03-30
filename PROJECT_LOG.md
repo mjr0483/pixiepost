@@ -86,3 +86,25 @@ Fork-specific files to watch during merges:
 - Only `/server-photos/` prefix allowed for import
 
 **Deploy requirement:** Coolify must build from fork (`Dockerfile.dev`) instead of pulling upstream image. Volume mount and env var must be added to Coolify compose.
+
+---
+
+## 2026-03-30 - Postiz Behavior Notes
+
+**Media lifecycle (tested):**
+- Publishing uploads media to the social platform. Postiz keeps its local copy in My Media but doesn't need it after publishing.
+- Deleting a photo from My Media after publishing does NOT break the calendar view - the calendar shows the platform's hosted image.
+- Republishing a post works even after deleting its media from My Media.
+- Deleting a post from the calendar does NOT unpublish it from the platform. Must unpublish on the platform dashboard directly.
+
+**Preview page fix:**
+- `BACKEND_INTERNAL_URL` was set to `http://postiz:5000` (nginx) which routed `/public/posts/` to the Next.js frontend instead of the NestJS backend. Fixed to `http://localhost:3000` (backend direct).
+
+**Server photos permission fix:**
+- GoodSync syncs directories with `770` permissions. Nginx runs as `www` user and couldn't traverse them. Fixed with a cron job (`fix-photo-perms.sh`) that sets directories to `755` every 5 minutes.
+
+**Planned improvements:**
+- Direct-reference import (skip copy to /uploads/, reference /server-photos/ URL)
+- Auto-purge media from My Media after successful publish
+- Bulk delete in My Media
+- Platform-aware subfolder auto-selection in Server Photos

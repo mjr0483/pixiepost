@@ -43,7 +43,9 @@
   },
   "dependencies": {
     "@ag-ui/mastra": "0.2.0",
+    "@ai-sdk/anthropic": "^2.0.0",
     "@ai-sdk/openai": "^2.0.52",
+    "@anthropic-ai/sdk": "^0.39.0",
     "@atproto/api": "^0.15.15",
     "@aws-sdk/client-s3": "^3.787.0",
     "@aws-sdk/s3-request-presigner": "^3.787.0",
@@ -57,6 +59,7 @@
     "@langchain/community": "^0.3.40",
     "@langchain/core": "^0.3.44",
     "@langchain/langgraph": "^0.2.63",
+    "@langchain/anthropic": "^0.3.0",
     "@langchain/openai": "^0.5.5",
     "@meronex/icons": "^4.0.0",
     "@mantine/core": "^5.10.5",

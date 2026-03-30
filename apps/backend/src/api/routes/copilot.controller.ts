@@ -14,6 +14,7 @@ import {
   copilotRuntimeNodeHttpEndpoint,
   copilotRuntimeNextJSAppRouterEndpoint,
 } from '@copilotkit/runtime';
+import Anthropic from '@anthropic-ai/sdk';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -39,10 +40,10 @@ export class CopilotController {
   @Post('/chat')
   chatAgent(@Req() req: Request, @Res() res: Response) {
     if (
-      process.env.OPENAI_API_KEY === undefined ||
-      process.env.OPENAI_API_KEY === ''
+      !process.env.ANTHROPIC_API_KEY &&
+      !process.env.OPENAI_API_KEY
     ) {
-      Logger.warn('OpenAI API key not set, chat functionality will not work');
+      Logger.warn('No AI API key set, chat functionality will not work');
       return;
     }
 
@@ -50,7 +51,13 @@ export class CopilotController {
       endpoint: '/copilot/chat',
       runtime: new CopilotRuntime(),
       serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
+        model: process.env.ANTHROPIC_API_KEY ? 'claude-sonnet-4-20250514' : 'gpt-4.1',
+        openai: process.env.ANTHROPIC_API_KEY
+          ? new (require('openai').default)({
+              apiKey: process.env.ANTHROPIC_API_KEY,
+              baseURL: 'https://api.anthropic.com/v1/',
+            })
+          : undefined,
       }),
     });
 
@@ -65,10 +72,10 @@ export class CopilotController {
     @GetOrgFromRequest() organization: Organization
   ) {
     if (
-      process.env.OPENAI_API_KEY === undefined ||
-      process.env.OPENAI_API_KEY === ''
+      !process.env.ANTHROPIC_API_KEY &&
+      !process.env.OPENAI_API_KEY
     ) {
-      Logger.warn('OpenAI API key not set, chat functionality will not work');
+      Logger.warn('No AI API key set, chat functionality will not work');
       return;
     }
     const mastra = await this._mastraService.mastra();
@@ -97,7 +104,13 @@ export class CopilotController {
       runtime,
       // properties: req.body.variables.properties,
       serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
+        model: process.env.ANTHROPIC_API_KEY ? 'claude-sonnet-4-20250514' : 'gpt-4.1',
+        openai: process.env.ANTHROPIC_API_KEY
+          ? new (require('openai').default)({
+              apiKey: process.env.ANTHROPIC_API_KEY,
+              baseURL: 'https://api.anthropic.com/v1/',
+            })
+          : undefined,
       }),
     });
 
