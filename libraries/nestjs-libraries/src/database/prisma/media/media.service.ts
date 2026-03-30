@@ -11,8 +11,6 @@ import {
   readdirSync,
   statSync,
   existsSync,
-  copyFileSync,
-  mkdirSync,
 } from 'fs';
 import { join, extname, basename } from 'path';
 import {
@@ -203,16 +201,6 @@ export class MediaService {
     orgId: string,
     files: { path: string; originalName: string }[]
   ) {
-    const uploadDir = process.env.UPLOAD_DIRECTORY || '/uploads';
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-
-    const innerPath = `/${year}/${month}/${day}`;
-    const destDir = `${uploadDir}${innerPath}`;
-    mkdirSync(destDir, { recursive: true });
-
     const results = [];
     for (const file of files) {
       // Extract the local filesystem path from the URL
@@ -224,25 +212,19 @@ export class MediaService {
         continue;
       }
 
-      const sourcePath = decodedPath; // nginx alias maps this to /server-photos/ on disk
-      if (!existsSync(sourcePath)) {
+      // Verify the file exists on disk
+      if (!existsSync(decodedPath)) {
         continue;
       }
 
-      const randomName = Array(32)
-        .fill(null)
-        .map(() => Math.round(Math.random() * 16).toString(16))
-        .join('');
-      const ext = extname(file.originalName || sourcePath);
-      const destFile = `${destDir}/${randomName}${ext}`;
-      const publicPath = `${innerPath}/${randomName}${ext}`;
-
-      copyFileSync(sourcePath, destFile);
+      // Direct reference: store the server-photos URL without copying
+      // At publish time, readOrFetch() will fetch via HTTP since path starts with http
+      const serverPhotoUrl = process.env.FRONTEND_URL + decodedPath;
 
       const saved = await this._mediaRepository.saveFile(
         orgId,
-        `${randomName}${ext}`,
-        process.env.FRONTEND_URL + '/uploads' + publicPath,
+        basename(decodedPath),
+        serverPhotoUrl,
         file.originalName
       );
       results.push(saved);
