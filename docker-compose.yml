@@ -4,9 +4,7 @@
 
 services:
   postiz:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
+    image: ghcr.io/mjr0483/pixiepost:latest
     restart: always
     environment:
       # Public application URLs

@@ -2,7 +2,7 @@
 name: Build
 
 on:
-  push:
+  workflow_dispatch:  # disabled on fork - was triggering on every push
 
 jobs:
   build:
