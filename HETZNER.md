@@ -12,6 +12,7 @@
 | Disk | 150 GB SSD (18 GB used, 13%) |
 | Access | SSH as root |
 | Panel | Coolify 4.0.0-beta.470 |
+| Coolify API | Enabled, token: `3|zm8WWqeuqeeCbXokcEswYNSAviH7b3Ln4CBXYY77RAWYr9Ej` |
 
 ## Docker Containers
 
@@ -326,3 +327,10 @@ Added server photo browsing to PixiePost. The postiz container now needs:
 - **Build from fork** (`mjr0483/pixiepost` via `Dockerfile.dev`) instead of upstream image
 
 See `PROJECT_LOG.md` for full code change details and security notes.
+
+### 2026-03-30 - Switched to Custom Build
+
+- Coolify now builds from fork (`mjr0483/pixiepost`) using `Dockerfile.dev` instead of pulling `ghcr.io/gitroomhq/postiz-app:latest`
+- Enabled Coolify API (token stored above)
+- First build took ~6 min; subsequent builds use Docker layer caching (~2-3 min)
+- Verified: `/server-photos/` mount, nginx config, site health check all working
