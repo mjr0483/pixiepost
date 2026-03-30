@@ -2,13 +2,10 @@
 name: "Build Fork Image"
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-    paths-ignore:
-      - '*.md'
-      - '.github/workflows/build.yml'
-      - '.github/workflows/build-containers.yml'
 
 jobs:
   build:
