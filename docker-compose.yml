@@ -143,7 +143,7 @@ services:
       postiz-redis:
         condition: service_healthy
       temporal:
-        condition: service_healthy
+        condition: service_started
     labels:
       - traefik.enable=true
       - traefik.docker.network=coolify
@@ -254,10 +254,10 @@ services:
       - "7233"
     healthcheck:
       test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     volumes:
       - /data/coolify/applications/w13p3iqa2bpukpcjcm1a8mow/dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
