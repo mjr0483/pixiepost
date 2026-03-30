@@ -103,8 +103,57 @@ Fork-specific files to watch during merges:
 **Server photos permission fix:**
 - GoodSync syncs directories with `770` permissions. Nginx runs as `www` user and couldn't traverse them. Fixed with a cron job (`fix-photo-perms.sh`) that sets directories to `755` every 5 minutes.
 
+**Completed improvements:**
+- Direct-reference import - server photos no longer copied to /uploads/, URL points to /server-photos/ directly
+
 **Planned improvements:**
-- Direct-reference import (skip copy to /uploads/, reference /server-photos/ URL)
 - Auto-purge media from My Media after successful publish
 - Bulk delete in My Media
 - Platform-aware subfolder auto-selection in Server Photos
+- Claude Vision for auto-generating captions and alt text from photos
+
+---
+
+## 2026-03-30 - Infrastructure Overhaul
+
+**GitHub Actions CI pipeline:**
+- Docker images now build on GitHub Actions, not on the server
+- Image pushed to `ghcr.io/mjr0483/pixiepost:latest`
+- Coolify pulls prebuilt image instead of building (was OOM-killing the server)
+- Workflow: `.github/workflows/build-fork.yml`
+
+**Temporal stability fix:**
+- Healthcheck: `start_period` 30s -> 120s, retries 10 -> 20
+- Postiz depends on `service_healthy` (backend crashes without Temporal)
+- 2GB swap file added to prevent OOM during builds
+
+**SFTP fix:**
+- Security audit disabled password auth globally
+- Added `PasswordAuthentication yes` in the `Match User pwsync` block
+- GoodSync SFTP works again
+
+**Login gate for dashboard and log:**
+- Replaced Traefik basicAuth with HTML login form
+- SHA-256 password validation, sessionStorage persistence
+- 1Password can now autofill (was impossible with browser auth popup)
+- Traefik still enforces HTTPS + security headers
+
+---
+
+## 2026-03-30 - Claude/Anthropic AI Swap
+
+Replaced all OpenAI text AI with Claude (claude-sonnet-4-20250514). DALL-E kept for image generation.
+
+**Files changed:**
+- `openai.service.ts` - Anthropic SDK for all 7 text methods, OpenAI only for `generateImage()`
+- `agent.graph.service.ts` - `ChatOpenAI` -> `ChatAnthropic` (@langchain/anthropic)
+- `agent.graph.insert.service.ts` - `ChatOpenAI` -> `ChatAnthropic`
+- `autopost.service.ts` - `ChatOpenAI` -> `ChatAnthropic`
+- `load.tools.service.ts` - `@ai-sdk/openai` -> `@ai-sdk/anthropic`
+- `copilot.controller.ts` - Uses Anthropic's OpenAI-compatible endpoint via CopilotKit
+
+**New packages:** `@anthropic-ai/sdk`, `@langchain/anthropic`, `@ai-sdk/anthropic`
+**New env var:** `ANTHROPIC_API_KEY` (set in Coolify)
+**OPENAI_API_KEY:** Optional, only needed for DALL-E image generation
+
+**Deploy requirement:** Both `ANTHROPIC_API_KEY` must be set in Coolify env vars.
