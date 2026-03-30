@@ -4,7 +4,9 @@
 
 services:
   postiz:
-    image: ghcr.io/gitroomhq/postiz-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     restart: always
     environment:
       # Public application URLs
