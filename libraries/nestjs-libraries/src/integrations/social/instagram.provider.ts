@@ -570,9 +570,14 @@ export class InstagramProvider
               )}`
             : ``;
 
+        const altTextParam =
+          m.alt && m.path.indexOf('.mp4') === -1 && !isStory
+            ? `&alt_text=${encodeURIComponent(m.alt)}`
+            : ``;
+
         const { id: photoId } = await (
           await this.fetch(
-            `https://${type}/v20.0/${id}/media?${mediaType}${isCarousel}${collaborators}${trialParams}&access_token=${accessToken}${caption}`,
+            `https://${type}/v20.0/${id}/media?${mediaType}${isCarousel}${collaborators}${trialParams}${altTextParam}&access_token=${accessToken}${caption}`,
             {
               method: 'POST',
             }
