@@ -321,7 +321,7 @@ export class PostsService {
     );
   }
 
-  async updateMedia(id: string, imagesList: any[], convertToJPEG = false) {
+  async updateMedia(id: string, imagesList: any[], convertToJPEG = false, postContent?: string) {
     try {
       let imageUpdateNeeded = false;
       // Step 1: Resolve media records from DB
@@ -360,7 +360,8 @@ export class PostsService {
         withUrls.map(async (m) => {
           if (!m.alt && m.url && m.path?.indexOf('.mp4') === -1) {
             try {
-              const alt = await this._openaiService.generateAltText(m.url);
+              const plainText = postContent?.replace(/<[^>]*>/g, '').trim();
+              const alt = await this._openaiService.generateAltText(m.url, plainText);
               if (alt) {
                 m.alt = alt;
                 imageUpdateNeeded = true;
@@ -506,7 +507,8 @@ export class PostsService {
           image: await this.updateMedia(
             post.id,
             JSON.parse(post.image || '[]'),
-            convertToJPEG
+            convertToJPEG,
+            post.content
           ),
         }))
       ),
@@ -544,7 +546,8 @@ export class PostsService {
           image: await this.updateMedia(
             post.id,
             JSON.parse(post.image || '[]'),
-            convertToJPEG
+            convertToJPEG,
+            post.content
           ),
         }))
       ),

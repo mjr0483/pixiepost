@@ -102,7 +102,7 @@ export class OpenaiService {
     return isUrl ? generate.url : generate.b64_json;
   }
 
-  async generateAltText(imageUrl: string): Promise<string> {
+  async generateAltText(imageUrl: string, postContext?: string): Promise<string> {
     const isBase64 = imageUrl.startsWith('data:');
     const imageContent: Anthropic.ImageBlockParam = isBase64
       ? {
@@ -128,7 +128,7 @@ export class OpenaiService {
             imageContent,
             {
               type: 'text',
-              text: 'Write concise, descriptive alt text for this image for accessibility. Be factual about what is visible. Do not start with "Image of" or "Photo of". Keep it under 125 characters. Return only the alt text, nothing else.',
+              text: `Write concise, descriptive alt text for this image for accessibility. Be factual about what is visible. Do not start with "Image of" or "Photo of". Keep it under 125 characters. Return only the alt text, nothing else.${postContext ? `\n\nContext from the post this image is attached to: "${postContext}"` : ''}`,
             },
           ],
         },
