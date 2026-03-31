@@ -324,52 +324,63 @@ export class PostsService {
   async updateMedia(id: string, imagesList: any[], convertToJPEG = false) {
     try {
       let imageUpdateNeeded = false;
-      const getImageList = await Promise.all(
-        (
-          await Promise.all(
-            (imagesList || []).map(async (p: any) => {
-              if (!p.path && p.id) {
-                imageUpdateNeeded = true;
-                const media = await this._mediaService.getMediaById(p.id);
-                if (media && !media.alt && media.path?.indexOf('.mp4') === -1) {
-                  try {
-                    const fullUrl = media.path.startsWith('http')
-                      ? media.path
-                      : `${process.env.FRONTEND_URL}/${process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY || ''}${media.path}`;
-                    const alt = await this._openaiService.generateAltText(fullUrl);
-                    if (alt) {
-                      media.alt = alt;
-                      await this._mediaService.saveMediaInformation(media.organizationId, { id: media.id, alt });
-                    }
-                  } catch (e) {
-                    // alt text generation is best-effort
-                  }
-                }
-                return media;
-              }
+      // Step 1: Resolve media records from DB
+      const resolvedMedia = await Promise.all(
+        (imagesList || []).map(async (p: any) => {
+          if (p.id) {
+            imageUpdateNeeded = true;
+            const media = await this._mediaService.getMediaById(p.id);
+            if (media) {
+              return p.path ? { ...p, alt: media.alt || p.alt, organizationId: media.organizationId } : media;
+            }
+          }
+          return p;
+        })
+      );
 
-              return p;
-            })
-          )
-        )
-          .map((m) => {
-            return {
-              ...m,
-              url:
-                m.path.indexOf('http') === -1
-                  ? process.env.FRONTEND_URL +
-                    '/' +
-                    process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY +
-                    m.path
-                  : m.path,
-              type: 'image',
-              path:
-                m.path.indexOf('http') === -1
-                  ? process.env.UPLOAD_DIRECTORY + m.path
-                  : m.path,
-            };
-          })
-          .map(async (m) => {
+      // Step 2: Resolve URLs
+      const withUrls = resolvedMedia.map((m) => ({
+        ...m,
+        url:
+          m.path.indexOf('http') === -1
+            ? process.env.FRONTEND_URL +
+              '/' +
+              process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY +
+              m.path
+            : m.path,
+        type: 'image',
+        path:
+          m.path.indexOf('http') === -1
+            ? process.env.UPLOAD_DIRECTORY + m.path
+            : m.path,
+      }));
+
+      // Step 3: Auto-generate alt text for images missing it
+      const withAlt = await Promise.all(
+        withUrls.map(async (m) => {
+          if (!m.alt && m.url && m.path?.indexOf('.mp4') === -1) {
+            try {
+              const alt = await this._openaiService.generateAltText(m.url);
+              if (alt) {
+                m.alt = alt;
+                imageUpdateNeeded = true;
+                if (m.id) {
+                  await this._mediaService.saveMediaInformation(
+                    m.organizationId || '',
+                    { id: m.id, alt }
+                  );
+                }
+              }
+            } catch (e) {
+              // alt text generation is best-effort
+            }
+          }
+          return m;
+        })
+      );
+
+      const getImageList = await Promise.all(
+        withAlt.map(async (m) => {
             if (!convertToJPEG) {
               return m;
             }
