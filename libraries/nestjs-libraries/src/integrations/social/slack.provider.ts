@@ -176,7 +176,7 @@ export class SlackProvider extends SocialAbstract implements SocialProvider {
               ? firstPost.media.map((m) => ({
                   type: 'image',
                   image_url: m.path,
-                  alt_text: '',
+                  alt_text: m.alt || '',
                 }))
               : []),
           ],
@@ -244,7 +244,7 @@ export class SlackProvider extends SocialAbstract implements SocialProvider {
               ? commentPost.media.map((m) => ({
                   type: 'image',
                   image_url: m.path,
-                  alt_text: '',
+                  alt_text: m.alt || '',
                 }))
               : []),
           ],

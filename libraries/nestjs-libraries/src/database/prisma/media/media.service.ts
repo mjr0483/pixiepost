@@ -66,6 +66,16 @@ export class MediaService {
     return this._mediaRepository.getMedia(org, page);
   }
 
+  async generateAltText(org: string, id: string, path: string) {
+    const frontendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.FRONTEND_URL || '';
+    const fullUrl = path.startsWith('http') ? path : `${frontendUrl}${path}`;
+    const alt = await this._openAi.generateAltText(fullUrl);
+    if (alt && id) {
+      await this._mediaRepository.saveMediaInformation(org, { id, alt });
+    }
+    return { alt };
+  }
+
   saveMediaInformation(org: string, data: SaveMediaInformationDto) {
     return this._mediaRepository.saveMediaInformation(org, data);
   }

@@ -313,6 +313,7 @@ export const MediaComponentInner: FC<{
   const [newThumbnail, setNewThumbnail] = useState<string | null>(null);
   const [isEditingThumbnail, setIsEditingThumbnail] = useState(false);
   const [altText, setAltText] = useState<string>(media?.alt || '');
+  const [generatingAlt, setGeneratingAlt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState<string | null>(
     props.media?.thumbnail || null
@@ -367,13 +368,38 @@ export const MediaComponentInner: FC<{
         <label className="text-sm text-textColor font-medium">
           Alt Text (for accessibility)
         </label>
-        <input
-          type="text"
-          value={altText}
-          onChange={(e) => setAltText(e.target.value)}
-          placeholder="Describe the image/video content..."
-          className="w-full px-3 py-2 bg-fifth border border-tableBorder rounded-lg text-textColor placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forth focus:border-transparent"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={altText}
+            onChange={(e) => setAltText(e.target.value)}
+            placeholder="Describe the image/video content..."
+            className="flex-1 px-3 py-2 bg-fifth border border-tableBorder rounded-lg text-textColor placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forth focus:border-transparent"
+          />
+          {media?.path && media.path.indexOf('mp4') === -1 && (
+            <button
+              type="button"
+              disabled={generatingAlt}
+              onClick={async () => {
+                setGeneratingAlt(true);
+                try {
+                  const res = await newFetch('/media/generate-alt-text', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: media.id, path: media.path }),
+                  });
+                  const data = await res.json();
+                  if (data.alt) setAltText(data.alt);
+                } catch (e) {
+                  // silent fail
+                }
+                setGeneratingAlt(false);
+              }}
+              className="px-3 py-2 bg-forth text-white rounded-lg text-sm whitespace-nowrap hover:opacity-80 disabled:opacity-50"
+            >
+              {generatingAlt ? 'Generating...' : 'AI Generate'}
+            </button>
+          )}
+        </div>
       </div>
       {media?.path.indexOf('mp4') > -1 && (
         <>

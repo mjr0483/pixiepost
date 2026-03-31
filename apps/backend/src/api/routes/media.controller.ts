@@ -119,6 +119,15 @@ export class MediaController {
     );
   }
 
+  @Post('/generate-alt-text')
+  async generateAltText(
+    @GetOrgFromRequest() org: Organization,
+    @Body('id') id: string,
+    @Body('path') path: string
+  ) {
+    return this._mediaService.generateAltText(org.id, id, path);
+  }
+
   @Post('/information')
   saveMediaInformation(
     @GetOrgFromRequest() org: Organization,

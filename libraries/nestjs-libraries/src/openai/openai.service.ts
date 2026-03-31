@@ -102,6 +102,43 @@ export class OpenaiService {
     return isUrl ? generate.url : generate.b64_json;
   }
 
+  async generateAltText(imageUrl: string): Promise<string> {
+    const isBase64 = imageUrl.startsWith('data:');
+    const imageContent: Anthropic.ImageBlockParam = isBase64
+      ? {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: (imageUrl.split(';')[0].split(':')[1] || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: imageUrl.split(',')[1],
+          },
+        }
+      : {
+          type: 'image',
+          source: { type: 'url', url: imageUrl },
+        };
+
+    const response = await claude.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            imageContent,
+            {
+              type: 'text',
+              text: 'Write concise, descriptive alt text for this image for accessibility. Be factual about what is visible. Do not start with "Image of" or "Photo of". Keep it under 125 characters. Return only the alt text, nothing else.',
+            },
+          ],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === 'text');
+    return textBlock && textBlock.type === 'text' ? textBlock.text.trim() : '';
+  }
+
   async generatePromptForPicture(prompt: string) {
     const PicturePrompt = z.object({ prompt: z.string() });
     const result = await claudeStructured(

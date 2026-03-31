@@ -316,28 +316,33 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       await Promise.all(
         postDetails.flatMap((p) =>
           p?.media?.flatMap(async (m) => {
-            return {
-              id: await this.runInConcurrent(
-                async () =>
-                  client.v2.uploadMedia(
-                    m.path.indexOf('mp4') > -1
-                      ? Buffer.from(await readOrFetch(m.path))
-                      : await sharp(await readOrFetch(m.path), {
-                          animated: lookup(m.path) === 'image/gif',
+            const mediaId = await this.runInConcurrent(
+              async () =>
+                client.v2.uploadMedia(
+                  m.path.indexOf('mp4') > -1
+                    ? Buffer.from(await readOrFetch(m.path))
+                    : await sharp(await readOrFetch(m.path), {
+                        animated: lookup(m.path) === 'image/gif',
+                      })
+                        .resize({
+                          width: 1000,
                         })
-                          .resize({
-                            width: 1000,
-                          })
-                          .gif()
-                          .toBuffer(),
-                    {
-                      media_type: (lookup(m.path) || '') as any,
-                    }
-                  ),
-                true
-              ),
-              postId: p.id,
-            };
+                        .gif()
+                        .toBuffer(),
+                  {
+                    media_type: (lookup(m.path) || '') as any,
+                  }
+                ),
+              true
+            );
+            if (mediaId && m.alt) {
+              try {
+                await client.v1.createMediaMetadata(mediaId, { alt_text: { text: m.alt } });
+              } catch (e) {
+                // alt text is best-effort
+              }
+            }
+            return { id: mediaId, postId: p.id };
           })
         )
       )
