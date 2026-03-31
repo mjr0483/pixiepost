@@ -802,27 +802,33 @@ export class PostsService {
       for (const val of post.value || []) {
         const images = val.image || [];
         for (const img of images) {
-          if (img.alt) {
+          if (img.alt && img.path) {
             try {
-              // Try by ID first
-              if (img.id) {
-                const media = await this._mediaService.getMediaById(img.id);
-                if (media) {
-                  await this._mediaService.saveMediaInformation(orgId, { id: img.id, alt: img.alt });
-                  continue;
-                }
-              }
-              // Fallback: match by path/filename
-              if (img.path) {
+              // Match by full path first (most accurate)
+              let media = await this._mediaService.findMediaByPath(orgId, img.path);
+              // Fallback: match by filename
+              if (!media) {
                 const fileName = img.path.split('/').pop();
-                const mediaByName = await this._mediaService.findMediaByName(orgId, fileName);
-                if (mediaByName) {
-                  await this._mediaService.saveMediaInformation(orgId, { id: mediaByName.id, alt: img.alt });
-                }
+                media = await this._mediaService.findMediaByName(orgId, fileName);
+              }
+              if (media) {
+                await this._mediaService.saveMediaInformation(orgId, { id: media.id, alt: img.alt });
+                // Update the image reference to use the real Media ID
+                img.id = media.id;
               }
             } catch (e) {}
           }
         }
+      }
+
+      // Re-save the post with corrected Media IDs
+      if (posts[0]) {
+        try {
+          await this._postRepository.updateImages(
+            posts[0].id,
+            JSON.stringify(post.value[0]?.image || [])
+          );
+        } catch (e) {}
       }
 
       if (body.type !== 'update') {
