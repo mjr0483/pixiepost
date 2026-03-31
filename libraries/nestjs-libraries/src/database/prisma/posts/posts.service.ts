@@ -801,15 +801,26 @@ export class PostsService {
       // Persist alt text from image array to Media records immediately
       for (const val of post.value || []) {
         const images = val.image || [];
-        console.log('[ALT-TEXT] Post created with images:', JSON.stringify(images.map((i: any) => ({ id: i.id, alt: i.alt || 'NONE' }))));
         for (const img of images) {
-          if (img.id && img.alt) {
-            console.log(`[ALT-TEXT] Saving alt for media ${img.id}: "${img.alt}"`);
+          if (img.alt) {
             try {
-              await this._mediaService.saveMediaInformation(orgId, { id: img.id, alt: img.alt });
-            } catch (e) {
-              console.log(`[ALT-TEXT] Failed to save alt for ${img.id}:`, e);
-            }
+              // Try by ID first
+              if (img.id) {
+                const media = await this._mediaService.getMediaById(img.id);
+                if (media) {
+                  await this._mediaService.saveMediaInformation(orgId, { id: img.id, alt: img.alt });
+                  continue;
+                }
+              }
+              // Fallback: match by path/filename
+              if (img.path) {
+                const fileName = img.path.split('/').pop();
+                const mediaByName = await this._mediaService.findMediaByName(orgId, fileName);
+                if (mediaByName) {
+                  await this._mediaService.saveMediaInformation(orgId, { id: mediaByName.id, alt: img.alt });
+                }
+              }
+            } catch (e) {}
           }
         }
       }

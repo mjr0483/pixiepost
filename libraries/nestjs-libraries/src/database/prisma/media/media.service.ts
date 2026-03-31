@@ -38,6 +38,10 @@ export class MediaService {
     return this._mediaRepository.getMediaById(id);
   }
 
+  findMediaByName(orgId: string, name: string) {
+    return this._mediaRepository.findMediaByName(orgId, name);
+  }
+
   async generateImage(
     prompt: string,
     org: Organization,
