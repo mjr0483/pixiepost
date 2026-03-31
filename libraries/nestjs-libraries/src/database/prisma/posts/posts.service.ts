@@ -801,11 +801,15 @@ export class PostsService {
       // Persist alt text from image array to Media records immediately
       for (const val of post.value || []) {
         const images = val.image || [];
+        console.log('[ALT-TEXT] Post created with images:', JSON.stringify(images.map((i: any) => ({ id: i.id, alt: i.alt || 'NONE' }))));
         for (const img of images) {
           if (img.id && img.alt) {
+            console.log(`[ALT-TEXT] Saving alt for media ${img.id}: "${img.alt}"`);
             try {
               await this._mediaService.saveMediaInformation(orgId, { id: img.id, alt: img.alt });
-            } catch (e) {}
+            } catch (e) {
+              console.log(`[ALT-TEXT] Failed to save alt for ${img.id}:`, e);
+            }
           }
         }
       }
