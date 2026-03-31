@@ -77,8 +77,13 @@ If the tools return errors, you would need to rerun it with the right parameters
                         "The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can't have u and strong together)"
                       ),
                     attachments: z
-                      .array(z.string())
-                      .describe('The image of the post (URLS)'),
+                      .array(
+                        z.object({
+                          url: z.string().describe('The image URL'),
+                          alt: z.string().optional().describe('Alt text for accessibility. Generate descriptive alt text for each image based on what is visible and the post context.'),
+                        })
+                      )
+                      .describe('The images of the post with alt text'),
                   })
                 )
                 .describe(
@@ -209,9 +214,10 @@ If the tools return errors, you would need to rerun it with the right parameters
                   content: p.content,
                   id: makeId(10),
                   delay: 0,
-                  image: p.attachments.map((p) => ({
+                  image: p.attachments.map((a) => ({
                     id: makeId(10),
-                    path: p,
+                    path: a.url || a,
+                    alt: a.alt || '',
                   })),
                 })),
               },
