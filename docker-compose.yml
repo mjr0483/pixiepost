@@ -251,11 +251,11 @@ services:
     expose:
       - "7233"
     healthcheck:
-      test: ["CMD-SHELL", "tctl --address $(hostname -i | awk '{print $1}'):7233 cluster health"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
-      start_period: 120s
+      test: ["CMD-SHELL", "tctl --address $(hostname -i | cut -d' ' -f1):7233 cluster health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     volumes:
       - /data/coolify/applications/w13p3iqa2bpukpcjcm1a8mow/dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
