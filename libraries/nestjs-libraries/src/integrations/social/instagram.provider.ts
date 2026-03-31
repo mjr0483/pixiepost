@@ -537,22 +537,23 @@ export class InstagramProvider
             : ``;
         const isCarousel =
           (firstPost?.media?.length || 0) > 1 && !isStory ? `&is_carousel_item=true` : ``;
+        const encodedPath = encodeURI(m.path);
         const mediaType =
           m.path.indexOf('.mp4') > -1
             ? firstPost?.media?.length === 1
               ? isStory
-                ? `video_url=${m.path}&media_type=STORIES`
-                : `video_url=${m.path}&media_type=REELS&thumb_offset=${
+                ? `video_url=${encodedPath}&media_type=STORIES`
+                : `video_url=${encodedPath}&media_type=REELS&thumb_offset=${
                     m?.thumbnailTimestamp || 0
                   }`
               : isStory
-              ? `video_url=${m.path}&media_type=STORIES`
-              : `video_url=${m.path}&media_type=VIDEO&thumb_offset=${
+              ? `video_url=${encodedPath}&media_type=STORIES`
+              : `video_url=${encodedPath}&media_type=VIDEO&thumb_offset=${
                   m?.thumbnailTimestamp || 0
                 }`
             : isStory
-            ? `image_url=${m.path}&media_type=STORIES`
-            : `image_url=${m.path}`;
+            ? `image_url=${encodedPath}&media_type=STORIES`
+            : `image_url=${encodedPath}`;
 
         const trialParams = isTrialReel
           ? `&trial_params=${encodeURIComponent(

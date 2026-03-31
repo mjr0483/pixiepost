@@ -440,7 +440,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      url: media.path,
+                      url: media.url?.replace(/ /g, '%20') || media.path.replace(/ /g, '%20'),
                       published: false,
                       ...(media.alt ? { alt_text_custom: media.alt } : {}),
                     }),
