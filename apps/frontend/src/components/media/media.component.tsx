@@ -1108,7 +1108,7 @@ export const MultiMediaComponent: FC<{
                           try {
                             const res = await altFetch('/media/generate-alt-text', {
                               method: 'POST',
-                              body: JSON.stringify({ id: m.id, path: m.path }),
+                              body: JSON.stringify({ id: m.id, path: m.path, context: text }),
                             });
                             const data = await res.json();
                             if (data.alt) {
