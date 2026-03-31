@@ -249,13 +249,14 @@ services:
       - ES_SEEDS=temporal-elasticsearch
       - ES_VERSION=v7
       - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
+      - BIND_ON_IP=0.0.0.0
     networks:
       - postiz-network
       - temporal-network
     expose:
       - "7233"
     healthcheck:
-      test: ["CMD-SHELL", "tctl --address $(hostname -i | cut -d' ' -f1):7233 cluster health"]
+      test: ["CMD-SHELL", "tctl --address localhost:7233 cluster health"]
       interval: 10s
       timeout: 5s
       retries: 10
