@@ -251,7 +251,7 @@ services:
     expose:
       - "7233"
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
       interval: 15s
       timeout: 10s
       retries: 20
