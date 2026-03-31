@@ -330,7 +330,22 @@ export class PostsService {
             (imagesList || []).map(async (p: any) => {
               if (!p.path && p.id) {
                 imageUpdateNeeded = true;
-                return this._mediaService.getMediaById(p.id);
+                const media = await this._mediaService.getMediaById(p.id);
+                if (media && !media.alt && media.path?.indexOf('.mp4') === -1) {
+                  try {
+                    const fullUrl = media.path.startsWith('http')
+                      ? media.path
+                      : `${process.env.FRONTEND_URL}/${process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY || ''}${media.path}`;
+                    const alt = await this._openaiService.generateAltText(fullUrl);
+                    if (alt) {
+                      media.alt = alt;
+                      await this._mediaService.saveMediaInformation(media.organizationId, { id: media.id, alt });
+                    }
+                  } catch (e) {
+                    // alt text generation is best-effort
+                  }
+                }
+                return media;
               }
 
               return p;
