@@ -5,13 +5,16 @@ export class SaveMediaInformationDto {
   id: string;
 
   @IsString()
-  alt: string;
+  @IsOptional()
+  alt?: string;
 
   @IsUrl()
+  @IsOptional()
   @ValidateIf((o) => !!o.thumbnail)
-  thumbnail: string;
+  thumbnail?: string;
 
   @IsNumber()
+  @IsOptional()
   @ValidateIf((o) => !!o.thumbnailTimestamp)
-  thumbnailTimestamp: number;
+  thumbnailTimestamp?: number;
 }

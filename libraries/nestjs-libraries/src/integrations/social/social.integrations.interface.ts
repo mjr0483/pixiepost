@@ -122,6 +122,7 @@ export type PollDetails = {
 export type MediaContent = {
   type: 'image' | 'video'; // Type of the media content
   path: string;
+  url?: string;
   alt?: string;
   thumbnail?: string;
   thumbnailTimestamp?: number;
