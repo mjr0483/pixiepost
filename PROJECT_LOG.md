@@ -156,4 +156,35 @@ Replaced all OpenAI text AI with Claude (claude-sonnet-4-20250514). DALL-E kept 
 **New env var:** `ANTHROPIC_API_KEY` (set in Coolify)
 **OPENAI_API_KEY:** Optional, only needed for DALL-E image generation
 
-**Deploy requirement:** Both `ANTHROPIC_API_KEY` must be set in Coolify env vars.
+**Deploy requirement:** `ANTHROPIC_API_KEY` must be set in Coolify env vars.
+
+---
+
+## 2026-03-30 - Temporal & Elasticsearch Findings
+
+**Elasticsearch is required.** Postiz registers >3 text search attributes with Temporal on startup. Postgres visibility store caps at 3. Without ES the backend crashes with `INVALID_ARGUMENT: Unable to create search attributes`.
+
+**ES memory reduced:** `ES_JAVA_OPTS` from `-Xms256m -Xmx256m` to `-Xms128m -Xmx128m`.
+
+**Temporal healthcheck fix:** The auto-setup image binds to the container's assigned IP (not localhost/0.0.0.0). `localhost` resolves to `::1` (IPv6) which doesn't match. Fixed healthcheck to use `$(hostname -i | cut -d' ' -f1):7233` to resolve the actual container IP dynamically. Deploy time dropped from 10+ minutes to ~1 minute.
+
+**Server photos direct-add:** When creating a post and importing from Server Photos, photos now go directly into the post. No My Media detour.
+
+---
+
+## Next Session Agenda
+
+**Setup:**
+- Connect Postiz MCP server to Claude Code for assisted posting
+  - URL: `https://pixiepost.pixiewire.com/api/mcp/<key>`
+  - Enables: list channels, create posts, upload media, schedule - all from chat
+
+**Features to build:**
+1. Claude Vision - auto-generate alt text and captions by analyzing photos
+2. Auto-purge media from My Media after successful publish
+3. Bulk delete in My Media (checkboxes + "Delete Selected")
+4. Test the Claude AI agent in PixiePost (post writing, copilot chat)
+
+**Investigate:**
+- Custom poster workflow vs enhancing PixiePost
+- Platform-aware subfolder auto-selection in Server Photos (show IG sizes for IG posts)
