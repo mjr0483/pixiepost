@@ -59,6 +59,17 @@ export class MediaRepository {
     });
   }
 
+  updateAltByPath(orgId: string, path: string, alt: string) {
+    return this._media.model.media.updateMany({
+      where: {
+        organizationId: orgId,
+        path,
+        deletedAt: null,
+      },
+      data: { alt },
+    });
+  }
+
   deleteMedia(org: string, id: string) {
     return this._media.model.media.update({
       where: {

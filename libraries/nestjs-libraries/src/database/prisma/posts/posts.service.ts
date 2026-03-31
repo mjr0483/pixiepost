@@ -804,16 +804,15 @@ export class PostsService {
         for (const img of images) {
           if (img.alt && img.path) {
             try {
-              // Match by full path first (most accurate)
+              // Update ALL Media records with this path - agent alt text wins
+              await this._mediaService.updateAltByPath(orgId, img.path, img.alt);
+              // Find the latest record to get the real UUID
               let media = await this._mediaService.findMediaByPath(orgId, img.path);
-              // Fallback: match by filename
               if (!media) {
                 const fileName = img.path.split('/').pop();
                 media = await this._mediaService.findMediaByName(orgId, fileName);
               }
               if (media) {
-                await this._mediaService.saveMediaInformation(orgId, { id: media.id, alt: img.alt });
-                // Update the image reference to use the real Media ID
                 img.id = media.id;
               }
             } catch (e) {}

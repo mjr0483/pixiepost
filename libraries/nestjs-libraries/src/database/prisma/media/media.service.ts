@@ -46,6 +46,10 @@ export class MediaService {
     return this._mediaRepository.findMediaByPath(orgId, path);
   }
 
+  updateAltByPath(orgId: string, path: string, alt: string) {
+    return this._mediaRepository.updateAltByPath(orgId, path, alt);
+  }
+
   async generateImage(
     prompt: string,
     org: Organization,
