@@ -66,10 +66,10 @@ export class MediaService {
     return this._mediaRepository.getMedia(org, page);
   }
 
-  async generateAltText(org: string, id: string, path: string) {
+  async generateAltText(org: string, id: string, path: string, context?: string) {
     const frontendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.FRONTEND_URL || '';
     const fullUrl = path.startsWith('http') ? path : `${frontendUrl}${path}`;
-    const alt = await this._openAi.generateAltText(fullUrl);
+    const alt = await this._openAi.generateAltText(fullUrl, context);
     if (alt && id) {
       await this._mediaRepository.saveMediaInformation(org, { id, alt });
     }

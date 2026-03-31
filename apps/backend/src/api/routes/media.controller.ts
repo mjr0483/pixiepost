@@ -123,9 +123,10 @@ export class MediaController {
   async generateAltText(
     @GetOrgFromRequest() org: Organization,
     @Body('id') id: string,
-    @Body('path') path: string
+    @Body('path') path: string,
+    @Body('context') context?: string
   ) {
-    return this._mediaService.generateAltText(org.id, id, path);
+    return this._mediaService.generateAltText(org.id, id, path, context);
   }
 
   @Post('/information')

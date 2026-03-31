@@ -918,6 +918,8 @@ export const MultiMediaComponent: FC<{
   }, [value]);
 
   const [currentMedia, setCurrentMedia] = useState(value);
+  const [generatingAllAlt, setGeneratingAllAlt] = useState(false);
+  const altFetch = useFetch();
   const mediaDirectory = useMediaDirectory();
   const changeMedia = useCallback(
     (
@@ -1011,6 +1013,7 @@ export const MultiMediaComponent: FC<{
                             children: (close) => (
                               <MediaComponentInner
                                 media={media as any}
+                                postContent={text}
                                 onClose={close}
                                 onSelect={(value: any) => {
                                   onChange({
@@ -1092,6 +1095,44 @@ export const MultiMediaComponent: FC<{
                   <AiImage value={text} onChange={changeMedia} />
                   <AiVideo value={text} onChange={changeMedia} />
                 </>
+              )}
+              {currentMedia && currentMedia.length > 0 && currentMedia.some((m: any) => m.path?.indexOf('.mp4') === -1) && (
+                <div
+                  onClick={async () => {
+                    if (generatingAllAlt) return;
+                    setGeneratingAllAlt(true);
+                    try {
+                      const updated = await Promise.all(
+                        (currentMedia || []).map(async (m: any) => {
+                          if (m.path?.indexOf('.mp4') > -1) return m;
+                          try {
+                            const res = await altFetch('/media/generate-alt-text', {
+                              method: 'POST',
+                              body: JSON.stringify({ id: m.id, path: m.path }),
+                            });
+                            const data = await res.json();
+                            if (data.alt) {
+                              await altFetch('/media/information', {
+                                method: 'POST',
+                                body: JSON.stringify({ id: m.id, alt: data.alt }),
+                              });
+                              return { ...m, alt: data.alt };
+                            }
+                          } catch (e) {}
+                          return m;
+                        })
+                      );
+                      setCurrentMedia(updated);
+                      onChange({ target: { name, value: updated } });
+                    } catch (e) {}
+                    setGeneratingAllAlt(false);
+                  }}
+                  className="cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px]"
+                >
+                  <div className="text-[10px] font-[600]">
+                    {generatingAllAlt ? 'Generating...' : 'Alt Text AI'}
+                  </div>
+                </div>
               )}
             </div>
           )}

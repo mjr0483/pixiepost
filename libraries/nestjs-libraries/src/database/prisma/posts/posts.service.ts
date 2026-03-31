@@ -331,7 +331,11 @@ export class PostsService {
             imageUpdateNeeded = true;
             const media = await this._mediaService.getMediaById(p.id);
             if (media) {
-              return p.path ? { ...p, alt: media.alt || p.alt, organizationId: media.organizationId } : media;
+              // Priority: post JSON alt (from agent) > DB alt > empty
+              const alt = p.alt || media.alt || '';
+              return p.path
+                ? { ...p, alt, organizationId: media.organizationId }
+                : { ...media, alt: alt || media.alt };
             }
           }
           return p;

@@ -289,6 +289,7 @@ export const CreateThumbnail: FC<{
 
 export const MediaComponentInner: FC<{
   onClose: () => void;
+  postContent?: string;
   onSelect: (media: {
     id: string;
     name: string;
@@ -307,7 +308,7 @@ export const MediaComponentInner: FC<{
       }
     | undefined;
 }> = (props) => {
-  const { onClose, onSelect, media } = props;
+  const { onClose, onSelect, media, postContent } = props;
   const setActivateExitButton = useLaunchStore((e) => e.setActivateExitButton);
   const newFetch = useFetch();
   const [newThumbnail, setNewThumbnail] = useState<string | null>(null);
@@ -385,7 +386,7 @@ export const MediaComponentInner: FC<{
                 try {
                   const res = await newFetch('/media/generate-alt-text', {
                     method: 'POST',
-                    body: JSON.stringify({ id: media.id, path: media.path }),
+                    body: JSON.stringify({ id: media.id, path: media.path, context: postContent }),
                   });
                   const data = await res.json();
                   if (data.alt) setAltText(data.alt);
