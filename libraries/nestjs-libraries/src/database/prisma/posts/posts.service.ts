@@ -798,6 +798,18 @@ export class PostsService {
         return [] as any[];
       }
 
+      // Persist alt text from image array to Media records immediately
+      for (const val of post.value || []) {
+        const images = val.image || [];
+        for (const img of images) {
+          if (img.id && img.alt) {
+            try {
+              await this._mediaService.saveMediaInformation(orgId, { id: img.id, alt: img.alt });
+            } catch (e) {}
+          }
+        }
+      }
+
       if (body.type !== 'update') {
         this.startWorkflow(
           post.settings.__type.split('-')[0].toLowerCase(),
