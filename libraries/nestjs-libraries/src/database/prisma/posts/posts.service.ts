@@ -333,6 +333,14 @@ export class PostsService {
             if (media) {
               // Priority: post JSON alt (from agent) > DB alt > empty
               const alt = p.alt || media.alt || '';
+              // Persist agent-provided alt to the Media record
+              if (p.alt && !media.alt) {
+                try {
+                  await this._mediaService.saveMediaInformation(
+                    media.organizationId, { id: media.id, alt: p.alt }
+                  );
+                } catch (e) {}
+              }
               return p.path
                 ? { ...p, alt, organizationId: media.organizationId }
                 : { ...media, alt: alt || media.alt };
