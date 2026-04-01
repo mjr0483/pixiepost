@@ -59,7 +59,6 @@ git merge upstream/main
 - `PROJECT_LOG.md` - Fork-specific changes, features, and decisions
 - `HETZNER.md` - Server infrastructure and Coolify container map
 - `SECURITY_AUDIT.md` - Security audit findings and remediation log
-- `SECURITY_AUDIT.md` - Security audit log with findings and fixes
 
 ## Upstream Repository
 

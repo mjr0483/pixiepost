@@ -172,19 +172,79 @@ Replaced all OpenAI text AI with Claude (claude-sonnet-4-20250514). DALL-E kept 
 
 ---
 
+## 2026-03-31 - Alt Text Auto-Generation (Claude Vision)
+
+**Feature:** Every image attached to a post gets Claude Vision-generated alt text automatically.
+
+**Three ways alt text gets set:**
+1. **Agent draft** - When the Postiz agent creates a draft, the MCP tool calls Claude Vision on each image URL with the post text as context. Alt text saved to Media record immediately.
+2. **"Alt Text AI" toolbar button** - Bulk generates alt text for all attached images using the post body for context. One click, all images done.
+3. **"AI Generate" gear icon button** - Per-image generation in Media Settings popup.
+4. **Auto at publish time** - If any image still has no alt text at publish, Claude Vision generates it as a fallback.
+
+**Alt text is context-aware:** The post text is passed to Claude Vision so alt text references the subject matter (e.g., "Disney's Animal Kingdom Lodge lobby" instead of "grand hotel lobby").
+
+**Provider support for alt text:**
+
+| Provider | Alt text support | Implementation |
+|----------|-----------------|----------------|
+| Facebook | YES | `alt_text_custom` parameter on photo upload |
+| Instagram | YES | `alt_text` parameter on media creation (added March 2025) |
+| X/Twitter | YES | `createMediaMetadata()` after upload |
+| Bluesky | YES | Already supported upstream |
+| Mastodon | YES | `description` field in media upload FormData |
+| Slack | YES | `alt_text` in image block |
+| LinkedIn | NO | API doesn't support alt text on images |
+| Threads | NO | API doesn't support alt text |
+
+**Files changed:**
+
+| File | What |
+|------|------|
+| `openai.service.ts` | Added `generateAltText(imageUrl, postContext?)` using Claude Vision |
+| `media.controller.ts` | Added `POST /media/generate-alt-text` endpoint |
+| `media.service.ts` | Added `generateAltTextForMedia()` method |
+| `media.repository.ts` | Added `updateAltByPath()`, `findMediaByPath()` |
+| `posts.service.ts` | Auto-generate alt at publish + persist agent alt at draft creation |
+| `integration.schedule.post.ts` | MCP tool calls Claude Vision per-image instead of agent guessing |
+| `media.settings.component.tsx` | Added "AI Generate" button in Media Settings |
+| `media.component.tsx` | Added "Alt Text AI" bulk button in toolbar |
+| `x.provider.ts` | Added `createMediaMetadata()` call after upload |
+| `mastodon.provider.ts` | Added `description` to upload FormData |
+| `facebook.provider.ts` | Added `alt_text_custom` to photo upload, URL-encoded spaces |
+| `instagram.provider.ts` | Added `alt_text` to media creation |
+| `slack.provider.ts` | Uses `m.alt` instead of hardcoded empty string |
+
+**Key bug fixes during development:**
+- MCP tool schema had `z.array(z.string())` for attachments - no field for alt text. Changed to `z.array(z.object({url, alt}))`.
+- Agent generated fake media IDs (e.g., `P6dh2apjwe`) that don't exist in the Media table. Fixed by matching on file path instead.
+- Facebook API rejected `/server-photos/` URLs with spaces. Fixed with `encodeURIComponent()`.
+- Alt text from first post was being overwritten by subsequent posts. Fixed: only write alt if Media record has none.
+- ImageMagick 6.x can't handle newer iPhone HEIC metadata. Switched photo processor to Python/Pillow (`pillow-heif`).
+
+---
+
+## 2026-03-31 - Photo Processor Rewrite
+
+Switched from ImageMagick `convert` to Python/Pillow for HEIC support. iPhone 15+ HEIC files have metadata that ImageMagick 6.x can't parse (`Invalid input: Metadata not correctly assigned to image`).
+
+**Files on server:**
+- `/opt/pw-scripts/convert-image.py` - Pillow-based converter (HEIC/JPG/PNG/WebP -> JPEG, with optional resize + center crop)
+- `/opt/pw-scripts/process-photos.sh` - Updated to call `convert-image.py` instead of `convert`, only scans `Originals/` subfolder
+- `/opt/pw-scripts/fix-photo-perms.sh` - Cron every 5 min, sets 755/644 so nginx can serve
+
+**Dependencies added:** `pillow`, `pillow-heif` (via pip3)
+
+---
+
 ## Next Session Agenda
 
-**Setup:**
-- Connect Postiz MCP server to Claude Code for assisted posting
-  - URL: `https://pixiepost.pixiewire.com/api/mcp/<key>`
-  - Enables: list channels, create posts, upload media, schedule - all from chat
-
 **Features to build:**
-1. Claude Vision - auto-generate alt text and captions by analyzing photos
-2. Auto-purge media from My Media after successful publish
-3. Bulk delete in My Media (checkboxes + "Delete Selected")
-4. Test the Claude AI agent in PixiePost (post writing, copilot chat)
+1. Auto-purge media from My Media after successful publish
+2. Bulk delete in My Media (checkboxes + "Delete Selected")
+3. Platform-aware subfolder auto-selection in Server Photos (show IG sizes for IG posts)
 
 **Investigate:**
-- Custom poster workflow vs enhancing PixiePost
-- Platform-aware subfolder auto-selection in Server Photos (show IG sizes for IG posts)
+- Connect Postiz MCP to Claude Code for posting from chat
+- Test Claude AI agent post quality and refine prompt template
+- Consider deduplication guard: prevent creating multiple Media records for the same server photo path

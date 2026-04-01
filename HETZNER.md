@@ -348,3 +348,18 @@ Full security audit with all 24 findings resolved. See `SECURITY_AUDIT.md` for d
 - Photo webhook secret rotated to 48-char hex, CORS restricted
 - Unauthenticated webhook (port 8085) killed, consolidated to 8084
 - Supabase storage upload policy restricted to mileage-photos bucket
+
+### 2026-03-31 - Photo Processor + Disk Cleanup
+
+**Photo processor rewritten:** ImageMagick 6.x replaced with Python/Pillow for HEIC support. iPhone 15+ HEIC files now convert correctly.
+- `/opt/pw-scripts/convert-image.py` - Pillow converter
+- `/opt/pw-scripts/process-photos.sh` - Only scans `Originals/` subfolder now
+- Dependencies: `pillow`, `pillow-heif` installed via pip3
+
+**Disk cleanup:** Docker image prune freed 7GB. 99GB free (was 91GB).
+
+**Temporal fix:** `BIND_ON_IP=0.0.0.0` added to Temporal env. Healthcheck uses `$(hostname -i | cut -d' ' -f1):7233`. Deploys now ~1 minute instead of 10+.
+
+**ES memory reduced:** `ES_JAVA_OPTS: "-Xms128m -Xmx128m"` (was 256m). Elasticsearch required - can't be removed (Postiz needs >3 text search attributes).
+
+**GitHub Actions CI:** All builds now on GitHub, not server. Image at `ghcr.io/mjr0483/pixiepost:latest`. 2GB swap file added as safety net.
