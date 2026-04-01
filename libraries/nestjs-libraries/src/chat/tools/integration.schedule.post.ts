@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
+import { OpenaiService } from '@gitroom/nestjs-libraries/openai/openai.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { AllProvidersSettings } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/all.providers.settings';
 import { validate } from 'class-validator';
@@ -24,7 +25,8 @@ function countCharacters(text: string, type: string): number {
 export class IntegrationSchedulePostTool implements AgentToolInterface {
   constructor(
     private _postsService: PostsService,
-    private _integrationService: IntegrationService
+    private _integrationService: IntegrationService,
+    private _openaiService: OpenaiService
   ) {}
   name = 'integrationSchedulePostTool';
 
@@ -210,15 +212,26 @@ If the tools return errors, you would need to rerun it with the right parameters
                     __type: integration.providerIdentifier,
                   } as AllProvidersSettings
                 ),
-                value: post.postsAndComments.map((p) => ({
-                  content: p.content,
-                  id: makeId(10),
-                  delay: 0,
-                  image: p.attachments.map((a) => ({
+                value: await Promise.all(post.postsAndComments.map(async (p) => {
+                  const postText = p.content.replace(/<[^>]*>/g, '').trim();
+                  const images = await Promise.all(
+                    p.attachments.map(async (a) => {
+                      const url = a.url || a;
+                      let alt = '';
+                      try {
+                        alt = await this._openaiService.generateAltText(url, postText);
+                      } catch (e) {
+                        alt = a.alt || '';
+                      }
+                      return { id: makeId(10), path: url, alt };
+                    })
+                  );
+                  return {
+                    content: p.content,
                     id: makeId(10),
-                    path: a.url || a,
-                    alt: a.alt || '',
-                  })),
+                    delay: 0,
+                    image: images,
+                  };
                 })),
               },
             ],

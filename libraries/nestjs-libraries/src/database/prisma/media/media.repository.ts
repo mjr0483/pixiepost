@@ -59,12 +59,13 @@ export class MediaRepository {
     });
   }
 
-  updateAltByPath(orgId: string, path: string, alt: string) {
+  updateAltByPath(orgId: string, path: string, alt: string, overwrite = false) {
     return this._media.model.media.updateMany({
       where: {
         organizationId: orgId,
         path,
         deletedAt: null,
+        ...(overwrite ? {} : { OR: [{ alt: null }, { alt: '' }] }),
       },
       data: { alt },
     });
