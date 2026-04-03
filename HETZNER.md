@@ -52,6 +52,7 @@
 | serpbear | towfiqi/serpbear:latest | SEO rank tracking (3000) | serp.pixiewire.com |
 | pw-dashboard | nginx:alpine | Pixiewire ops dashboard (8083) | dashboard.pixiewire.com |
 | pw-log | nginx:alpine | AP & mileage tracker (8082) | log.pixiewire.com |
+| pw-dining | nginx:alpine | Dining engine status page (8086) | dining.pixiewire.com |
 
 ## Pixiewire Subsites & Apps
 
@@ -125,6 +126,17 @@ SEO rank tracking for pixiewire.com keywords.
 ### coolify.pixiewire.com (coolify)
 
 Self-hosted PaaS managing all Docker containers on this server.
+
+### dining.pixiewire.com (pw-dining)
+
+Dining engine status page. Static site served by nginx (port 8086). Same SHA-256 login gate as pw-dashboard and pw-log.
+
+Shows service status, monitored restaurants (from Supabase `dining_restaurants` table), and sprint progress.
+
+Files: `/opt/pw-dining/index.html`, `/opt/pw-dining/conf/default.conf`
+Traefik config: `/data/coolify/proxy/dynamic/pw-dining.yml`
+
+Related: `/opt/pixiewire-dining/` — Node.js polling engine repo (Sprint 1 complete, Sprint 2 pending). Uses Playwright + Chromium to check Disney dining availability. PM2 managed.
 
 ---
 
@@ -281,6 +293,8 @@ This is **not** calling the local `process-photos.sh` script. The dashboard webh
 /opt/pw-dashboard/       # Dashboard static site (28 KB)
 /opt/pw-scripts/         # Photo processing scripts (24 KB)
 /opt/pw-log/             # AP & mileage tracker site
+/opt/pw-dining/          # Dining engine status page
+/opt/pixiewire-dining/   # Dining engine Node.js repo (Playwright + PM2)
 /opt/postiz/             # PixiePost data
 /opt/temporal/           # Temporal data
 ```
@@ -363,3 +377,24 @@ Full security audit with all 24 findings resolved. See `SECURITY_AUDIT.md` for d
 **ES memory reduced:** `ES_JAVA_OPTS: "-Xms128m -Xmx128m"` (was 256m). Elasticsearch required - can't be removed (Postiz needs >3 text search attributes).
 
 **GitHub Actions CI:** All builds now on GitHub, not server. Image at `ghcr.io/mjr0483/pixiepost:latest`. 2GB swap file added as safety net.
+
+### 2026-04-03 - Dining Alert Engine (Sprint 1 + Sprint 2)
+
+**Sprint 1 — Foundation:**
+- Repo at `/opt/pixiewire-dining` — Node.js 20 (nvm), PM2, Playwright + Chromium
+- `dining.pixiewire.com` status page: `pw-dining` nginx container on port 8086, Traefik dynamic config
+- 4 Supabase tables (`dining_restaurants`, `dining_alerts`, `dining_notifications`, `dining_poll_log`) with RLS
+- 87 WDW restaurants seeded with verified Disney entityIds from `dine-at-disney` CLI
+
+**Sprint 2 — Orchestrator + Email:**
+- Architecture: `src/orchestrator.ts` reads Supabase alerts, spawns `dine-at-disney` CLI per unique check. CLI handles Disney auth + Akamai retries.
+- Decodo ISP proxies purchased but blocked by Disney's Akamai CDN — Hetzner direct IP works fine
+- Disney session: Gmail Disney account, auth file at `/root/.dine-at-disney-auth-wdw.json`, CLI runs under `xvfb-run`
+- Email notifications via Resend (`noreply@pixiewire.com`) with List-Unsubscribe headers
+- PM2 running (`pixiewire-dining`), saved, systemd startup enabled
+- End-to-end verified: Kona Cafe returned 39 time slots
+
+**Files:**
+- `/opt/pixiewire-dining/` — Node.js dining engine repo (17+ commits)
+- `/opt/pw-dining/` — status page (nginx static site)
+- `/data/coolify/proxy/dynamic/pw-dining.yml` — Traefik config
